@@ -1,7 +1,7 @@
 /**
  * @name slipEncode
- * Take an array buffer and return back a new array where
- * 0xdb is replaced with 0xdb 0xdd and 0xc0 is replaced with 0xdb 0xdc
+ * 接收一个数组缓冲区，并返回一个新数组，其中
+ * 0xdb 被替换为 0xdb 0xdd，0xc0 被替换为 0xdb 0xdc
  */
 export const slipEncode = (buffer: number[]): number[] => {
   let encoded = [0xc0];
@@ -20,7 +20,7 @@ export const slipEncode = (buffer: number[]): number[] => {
 
 /**
  * @name toByteArray
- * Convert a string to a byte array
+ * 将字符串转换为字节数组
  */
 export const toByteArray = (str: string): number[] => {
   const byteArray: number[] = [];
@@ -46,7 +46,7 @@ export const toHex = (value: number, size = 2) => {
 };
 
 /**
- * Format MAC address array to string (e.g., [0xAA, 0xBB, 0xCC] -> "AA:BB:CC:DD:EE:FF")
+ * 将MAC地址数组格式化为字符串（例如：[0xAA, 0xBB, 0xCC] -> "AA:BB:CC:DD:EE:FF"）
  */
 export const formatMacAddr = (macAddr: number[]): string => {
   return macAddr
@@ -56,7 +56,7 @@ export const formatMacAddr = (macAddr: number[]): string => {
 
 /**
  * @name padTo
- * Pad data to the next alignment boundary with the given fill byte (default 0xFF)
+ * 使用给定的填充字节（默认为0xFF）将数据填充到下一个对齐边界
  */
 export function padTo(
   data: Uint8Array,

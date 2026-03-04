@@ -1,16 +1,16 @@
-// Import WebUSB serial support for Android compatibility
+// 导入适用于 Android 的 WebUSB 串行支持
 import { WebUSBSerial, requestSerialPort } from './webusb-serial.js';
 
-// Make requestSerialPort available globally for esptool.js
-// Use defensive assignment to avoid accidental overwrites
+// 使 requestSerialPort 在全局可用，以便 esptool.js 使用
+// 使用防御性赋值避免意外覆盖
 if (!globalThis.requestSerialPort) {
   globalThis.requestSerialPort = requestSerialPort;
 }
 
-// Utility functions imported from esptool module
+// 从 esptool 模块导入的工具函数
 let toHex, formatMacAddr, sleep;
 
-// Load utilities from esptool package
+// 从 esptool 包加载工具函数
 window.esptoolPackage.then((esptoolMod) => {
   toHex = esptoolMod.toHex;
   formatMacAddr = esptoolMod.formatMacAddr;
@@ -19,29 +19,29 @@ window.esptoolPackage.then((esptoolMod) => {
 
 let espStub;
 let esp32s2ReconnectInProgress = false;
-let currentChipName = null; // Store chip name globally
-let currentMacAddr = null; // Store MAC address globally
-let isConnected = false; // Track connection state
-let consoleInstance = null; // ESP32ToolConsole instance
-let baudRateBeforeConsole = null; // Store baudrate before opening console
-let espLoaderBeforeConsole = null; // Store original ESPLoader before console
-let chipFamilyBeforeConsole = null; // Store chipFamily before opening console
+let currentChipName = null; // 全局存储芯片名称
+let currentMacAddr = null; // 全局存储 MAC 地址
+let isConnected = false; // 跟踪连接状态
+let consoleInstance = null; // ESP32ToolConsole 实例
+let baudRateBeforeConsole = null; // 打开控制台前保存波特率
+let espLoaderBeforeConsole = null; // 打开控制台前保存原始 ESPLoader
+let chipFamilyBeforeConsole = null; // 打开控制台前保存芯片系列
 let consoleResetHandler = null;
 let consoleCloseHandler = null;
 
 /**
- * Clear all cached data and state on disconnect
+ * 断开连接时清除所有缓存数据和状态
  */
 function clearAllCachedData() {
 
-  // Clear partition list
+  // 清除分区列表
   partitionList.innerHTML = '';
   partitionList.classList.add('hidden');
-  
-  // Show the Read Partition Table button again
+
+  // 再次显示“读取分区表”按钮
   butReadPartitions.classList.remove('hidden');
-  
-  // Hide ESP8266 info (if it exists)
+
+  // 隐藏 ESP8266 信息（如果存在）
   const esp8266Info = document.getElementById('esp8266Info');
   if (esp8266Info) {
     esp8266Info.classList.add('hidden');
@@ -74,52 +74,52 @@ const progress = document.querySelectorAll(".upload .progress-bar");
 const offsets = document.querySelectorAll(".upload .offset");
 const appDiv = document.getElementById("app");
 
-// Mobile detection
+// 移动设备检测
 function isMobileDevice() {
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-  
-  // Check for mobile user agents
+
+  // 检查移动设备用户代理
   const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   const isMobileUA = mobileRegex.test(userAgent);
-  
-  // Check for touch support
+
+  // 检查触摸支持
   const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  
-  // Check screen size
+
+  // 检查屏幕尺寸
   const isSmallScreen = window.innerWidth <= 768;
-  
+
   return isMobileUA || (hasTouch && isSmallScreen);
 }
 
 /**
- * Detect if we're using WebUSB (mobile/Android) or Web Serial (desktop)
- * WebUSB is typically used on Android devices
- * Web Serial is used on desktop browsers
+ * 检测当前是否使用 WebUSB（移动端/Android）还是 Web Serial（桌面端）
+ * WebUSB 通常用于 Android 设备
+ * Web Serial 用于桌面浏览器
  */
 function isUsingWebUSB() {
-  // If we have an active connection, check the port's isWebUSB property
+  // 如果有活动连接，检查端口的 isWebUSB 属性
   if (espStub && espStub.port && typeof espStub.port.isWebUSB !== 'undefined') {
     return espStub.port.isWebUSB === true;
   }
-  
-  // Fallback: Check if we're on a mobile device (likely using WebUSB)
+
+  // 回退：检查是否在移动设备上（可能使用 WebUSB）
   if (isMobileDevice()) {
     return true;
   }
-  
-  // Check if Web Serial is NOT available but USB is (WebUSB only)
+
+  // 检查 Web Serial 不可用但 USB 可用（仅 WebUSB）
   if (!("serial" in navigator) && "usb" in navigator) {
     return true;
   }
-  
-  // Default to Web Serial (desktop)
+
+  // 默认为 Web Serial（桌面）
   return false;
 }
 
-// Update mobile classes and padding
+// 更新移动类和内边距
 function updateMobileClasses() {
   const isMobile = isMobileDevice();
-  
+
   if (isMobile) {
     document.body.classList.add('mobile-device');
     document.body.classList.add('no-hover');
@@ -127,12 +127,12 @@ function updateMobileClasses() {
     document.body.classList.remove('mobile-device');
     document.body.classList.remove('no-hover');
   }
-  
-  // Update main padding to match header height
+
+  // 更新主要内边距以匹配头部高度
   updateMainPadding();
 }
 
-// Debounce helper
+// 防抖辅助函数
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -145,20 +145,20 @@ function debounce(func, wait) {
   };
 }
 
-// Debounced resize handler
+// 防抖调整大小处理程序
 const debouncedUpdateMobileClasses = debounce(updateMobileClasses, 250);
 
-// Apply mobile class on load
+// 加载时应用移动类
 updateMobileClasses();
 
-// Update on resize and orientation change
+// 在调整大小和方向变化时更新
 window.addEventListener('resize', debouncedUpdateMobileClasses);
 window.addEventListener('orientationchange', debouncedUpdateMobileClasses);
 
 document.addEventListener("DOMContentLoaded", () => {
   butConnect.addEventListener("click", () => {
     clickConnect().catch(async (e) => {
-      debugMsg('Connection error: ' + e);
+      debugMsg('连接错误：' + e);
       errorMsg(e.message || e);
       if (espStub) {
         await espStub.disconnect();
@@ -177,20 +177,20 @@ document.addEventListener("DOMContentLoaded", () => {
   for (let i = 0; i < offsets.length; i++) {
     offsets[i].addEventListener("change", checkProgrammable);
   }
-  
-  // Initialize upload rows visibility - only show first row
+
+  // 初始化上传行的可见性 - 仅显示第一行
   updateUploadRowsVisibility();
-  
+
   autoscroll.addEventListener("click", clickAutoscroll);
   baudRateSelect.addEventListener("change", changeBaudRate);
   darkMode.addEventListener("click", clickDarkMode);
   debugMode.addEventListener("click", clickDebugMode);
   showLog.addEventListener("click", clickShowLog);
   window.addEventListener("error", function (event) {
-    console.log("Got an uncaught error: ", event.error);
+    console.log("捕获到未处理的错误：", event.error);
   });
 
-  // Check for Web Serial or WebUSB support
+  // 检查 Web Serial 或 WebUSB 支持
   if ("serial" in navigator || "usb" in navigator) {
     const notSupported = document.getElementById("notSupported");
     notSupported.classList.add("hidden");
@@ -199,16 +199,16 @@ document.addEventListener("DOMContentLoaded", () => {
   initBaudRate();
   loadAllSettings();
   updateTheme();
-  logMsg("WebSerial ESPTool loaded.");
-  
-  // Set initial main padding based on header height
+  logMsg("WebSerial ESPTool 已加载。");
+
+  // 根据头部高度设置主要内边距
   updateMainPadding();
 });
 
 function initBaudRate() {
   for (let rate of baudRates) {
     var option = document.createElement("option");
-    option.text = rate + " Baud";
+    option.text = rate + " 波特";
     option.value = rate;
     baudRateSelect.add(option);
   }
@@ -217,7 +217,7 @@ function initBaudRate() {
 function logMsg(text) {
   log.innerHTML += text + "<br>";
 
-  // Remove old log content
+  // 移除旧日志内容
   if (log.textContent.split("\n").length > maxLogLength + 1) {
     let logLines = log.innerHTML.replace(/(\n)/gm, "").split("<br>");
     log.innerHTML = logLines.splice(-maxLogLength).join("<br>\n");
@@ -229,14 +229,14 @@ function logMsg(text) {
 }
 
 /**
- * Append one or more debug-formatted values to the application log when debug mode is enabled.
+ * 当调试模式启用时，将一个或多个调试格式的值附加到应用程序日志中。
  *
- * Formats primitive values (strings, numbers, booleans), `null`, and `undefined` as readable text;
- * formats Array and `Uint8Array` elements as hex bytes (e.g., `0x1a`) inside brackets; logs other
- * object types to the browser console and records a message indicating an unhandled type.
+ * 将原始值（字符串、数字、布尔值）、`null` 和 `undefined` 格式化为可读文本；
+ * 将数组和 `Uint8Array` 元素格式化为十六进制字节（例如 `0x1a`）并放在方括号内；
+ * 将其他对象类型记录到浏览器控制台，并记录一条消息指示未处理的类型。
  *
- * @param {...any} args - Values to format and append to the debug log. The first argument is written
- *   without a leading prefix; subsequent arguments are appended without additional prefixes.
+ * @param {...any} args - 要格式化和附加到调试日志的值。第一个参数不加前缀写入；
+ *   后续参数不加额外前缀附加。
  */
 function debugMsg(...args) {
   if (!debugMode.checked) {
@@ -260,31 +260,31 @@ function debugMsg(...args) {
     } else if (typeof arg == "object" && arg instanceof Uint8Array) {
       logMsg(
         prefix +
-          "[" +
-          Array.from(arg)
-            .map((value) => toHex(value))
-            .join(", ") +
-          "]",
+        "[" +
+        Array.from(arg)
+          .map((value) => toHex(value))
+          .join(", ") +
+        "]",
       );
     } else {
-      logMsg(prefix + "Unhandled type of argument:" + typeof arg);
+      logMsg(prefix + "未处理的参数类型：" + typeof arg);
       console.log(arg);
     }
-    prefix = ""; // Only show for first argument
+    prefix = ""; // 仅对第一个参数显示
   }
 }
 
 function errorMsg(text) {
-  logMsg('<span class="error-message">Error:</span> ' + text);
+  logMsg('<span class="error-message">错误：</span>' + text);
   console.error(text);
 }
 
 /**
  * @name updateTheme
- * Sets the theme to dark mode. Can be refactored later for more themes
+ * 设置主题为深色模式。稍后可以重构以支持更多主题
  */
 function updateTheme() {
-  // Disable all themes
+  // 禁用所有主题
   document
     .querySelectorAll("link[rel=stylesheet].alternate")
     .forEach((styleSheet) => {
@@ -303,83 +303,83 @@ function enableStyleSheet(node, enabled) {
 }
 
 /**
- * Parse flash size string (e.g., "256KB", "4MB") to bytes
- * @param {string} sizeStr - Flash size string with unit (KB or MB)
- * @returns {number} Size in bytes
+ * 解析闪存大小字符串（例如“256KB”、“4MB”）为字节数
+ * @param {string} sizeStr - 带有单位（KB 或 MB）的闪存大小字符串
+ * @returns {number} 字节数
  */
 function parseFlashSize(sizeStr) {
   if (!sizeStr || typeof sizeStr !== 'string') {
     return 0;
   }
-  
-  // Extract number and unit
+
+  // 提取数字和单位
   const match = sizeStr.match(/^(\d+)(KB|MB)$/i);
   if (!match) {
-    // If no unit, assume it's already in MB (legacy behavior)
+    // 如果没有单位，假设它已经是 MB（旧版行为）
     const num = parseInt(sizeStr);
     return isNaN(num) ? 0 : num * 1024 * 1024;
   }
-  
+
   const value = parseInt(match[1]);
   const unit = match[2].toUpperCase();
-  
+
   if (unit === 'KB') {
-    return value * 1024; // KB to bytes
+    return value * 1024; // KB 转字节
   } else if (unit === 'MB') {
-    return value * 1024 * 1024; // MB to bytes
+    return value * 1024 * 1024; // MB 转字节
   }
-  
+
   return 0;
 }
 
 /**
  * @name clickConnect
- * Click handler for the connect/disconnect button.
+ * 连接/断开按钮的点击处理程序。
  */
 async function clickConnect() {
-  console.log('[clickConnect] Function called');
-  
+  console.log('[clickConnect] 函数被调用');
+
   if (espStub) {
-    console.log('[clickConnect] Already connected, disconnecting...');
-    // Remove disconnect event listener to prevent it from firing during manual disconnect
+    console.log('[clickConnect] 已连接，正在断开...');
+    // 移除断开连接事件监听器，防止在手动断开时触发
     if (espStub.handleDisconnect) {
       espStub.removeEventListener("disconnect", espStub.handleDisconnect);
     }
-    
+
     await espStub.disconnect();
     try {
       await espStub.port?.close?.();
     } catch (e) {
-      // ignore double-close
+      // 忽略重复关闭
     }
     toggleUIConnected(false);
     espStub = undefined;
 
-    // Clear all cached data and state
+    // 清除所有缓存数据和状态
     clearAllCachedData();
 
     return;
   }
 
-  console.log('[clickConnect] Getting esploaderMod...');
+  console.log('[clickConnect] 正在获取 esploaderMod...');
   const esploaderMod = await window.esptoolPackage;
 
-  // Platform detection: Android always uses WebUSB, Desktop uses Web Serial
+  // 平台检测：Android 始终使用 WebUSB，桌面使用 Web Serial
   const userAgent = navigator.userAgent || '';
   const isAndroid = /Android/i.test(userAgent);
-  
-  // Only log platform details to UI in debug mode (avoid fingerprinting surface)
+
+  // 仅在调试模式下将平台详情记录到 UI（避免增加指纹识别面）
   if (debugMode.checked) {
-    const platformMsg = `Platform: ${isAndroid ? 'Android' : 'Desktop'} (UA: ${userAgent.substring(0, 50)}...)`;
+    const platformMsg = `平台：${isAndroid ? 'Android' : '桌面'} (UA: ${userAgent.substring(0, 50)}...)`;
     logMsg(platformMsg);
   }
-  logMsg(`Using: ${isAndroid ? 'WebUSB' : 'Web Serial'}`);
-  
+  logMsg(`使用：${isAndroid ? 'WebUSB' : 'Web Serial'}`);
+
   let esploader;
-  
+
   if (isAndroid) {
-    // Android: Use WebUSB directly
-    console.log('[Connect] Using WebUSB for Android');
+    // Android：直接使用 WebUSB
+    console.log('[Connect] 为 Android 使用 WebUSB');
     try {
       const port = await WebUSBSerial.requestPort((...args) => logMsg(...args));
       esploader = await esploaderMod.connectWithPort(port, {
@@ -388,129 +388,129 @@ async function clickConnect() {
         error: (...args) => errorMsg(...args),
       });
     } catch (err) {
-      logMsg(`WebUSB connection failed: ${err.message || err}`);
+      logMsg(`WebUSB 连接失败：${err.message || err}`);
       throw err;
     }
   } else {
-    // Desktop: Use Web Serial (standard esptool connect)
-    console.log('[Connect] Using Web Serial for Desktop');
+    // 桌面：使用 Web Serial（标准 esptool 连接）
+    console.log('[Connect] 为桌面使用 Web Serial');
     esploader = await esploaderMod.connect({
       log: (...args) => logMsg(...args),
       debug: (...args) => debugMsg(...args),
       error: (...args) => errorMsg(...args),
     });
   }
-  
-  // Handle ESP32-S2 Native USB reconnection requirement for BROWSER
-  // Only add listener if not already in reconnect mode
+
+  // 处理 ESP32-S2 Native USB 在浏览器中的重新连接要求
+  // 仅当尚未处于重新连接模式时添加监听器
   if (!esp32s2ReconnectInProgress) {
     esploader.addEventListener("esp32s2-usb-reconnect", async () => {
-      // Prevent recursive calls
+      // 防止递归调用
       if (esp32s2ReconnectInProgress) {
         return;
       }
-      
+
       esp32s2ReconnectInProgress = true;
-      logMsg("ESP32-S2 Native USB detected!");
+      logMsg("检测到 ESP32-S2 Native USB！");
       toggleUIConnected(false);
       const previousStubPort = espStub?.port;
       espStub = undefined;
-      
+
       try {
-        // Close the port first
+        // 先关闭端口
         await esploader.port.close();
 
-        // Use the modal dialog approach
+        // 使用模态对话框方法
         if (previousStubPort && previousStubPort.readable) {
           await previousStubPort.close();
         }
       } catch (closeErr) {
-        // Ignore port close errors
-        debugMsg(`Port close error (ignored): ${closeErr.message}`);
+        // 忽略端口关闭错误
+        debugMsg(`端口关闭错误（已忽略）：${closeErr.message}`);
       }
-      
-      // Show modal dialog
+
+      // 显示模态对话框
       const modal = document.getElementById("esp32s2Modal");
       const reconnectBtn = document.getElementById("butReconnectS2");
-        
+
       modal.classList.remove("hidden");
-        
-      // Handle reconnect button click
+
+      // 处理重新连接按钮点击
       const handleReconnect = async () => {
         modal.classList.add("hidden");
         reconnectBtn.removeEventListener("click", handleReconnect);
-          
-        logMsg("Requesting new device selection...");
-          
-        // Trigger port selection
+
+        logMsg("请求选择新设备...");
+
+        // 触发端口选择
         try {
           await clickConnect();
-          // Reset flag on successful connection
+          // 成功连接后重置标志
           esp32s2ReconnectInProgress = false;
         } catch (err) {
-          errorMsg("Failed to reconnect: " + err);
-          // Reset flag on error so user can try again
+          errorMsg("重新连接失败：" + err);
+          // 出错时重置标志，以便用户重试
           esp32s2ReconnectInProgress = false;
         }
       };
       reconnectBtn.addEventListener("click", handleReconnect);
     });
   }
-  
+
   try {
     await esploader.initialize();
   } catch (err) {
-    // If ESP32-S2 reconnect is in progress (handled by event listener), suppress the error
+    // 如果 ESP32-S2 重新连接正在进行（由事件监听器处理），抑制错误
     if (esp32s2ReconnectInProgress) {
-      logMsg("Initialization interrupted for ESP32-S2 reconnection.");
+      logMsg("ESP32-S2 重新连接中断了初始化。");
       return;
     }
-    
-    // Not ESP32-S2 or other error
+
+    // 不是 ESP32-S2 或其他错误
     try {
       await esploader.disconnect();
     } catch (disconnectErr) {
-      // Ignore disconnect errors
+      // 忽略断开连接错误
     }
     throw err;
   }
 
-  logMsg("Connected to " + esploader.chipName);
-  logMsg("MAC Address: " + formatMacAddr(esploader.macAddr()));
+  logMsg("已连接到 " + esploader.chipName);
+  logMsg("MAC 地址：" + formatMacAddr(esploader.macAddr()));
 
-  // Store chip info globally
+  // 全局存储芯片信息
   currentChipName = esploader.chipName;
   currentMacAddr = formatMacAddr(esploader.macAddr());
 
   espStub = await esploader.runStub();
-  
+
   toggleUIConnected(true);
   toggleUIToolbar(true);
 
-  // Set detected flash size in the read size field
+  // 在读取大小字段中设置检测到的闪存大小
   if (espStub.flashSize) {
     const flashSizeBytes = parseFlashSize(espStub.flashSize);
     readSize.value = "0x" + flashSizeBytes.toString(16);
   }
-  
-  // Set the selected baud rate
+
+  // 设置选定的波特率
   let baud = parseInt(baudRateSelect.value);
   if (baudRates.includes(baud)) {
     await espStub.setBaudrate(baud);
   }
-  
-  // Store disconnect handler so we can remove it later
+
+  // 存储断开处理程序以便稍后移除
   const handleDisconnect = () => {
     toggleUIConnected(false);
     espStub = false;
   };
-  espStub.handleDisconnect = handleDisconnect; // Store reference on espStub
+  espStub.handleDisconnect = handleDisconnect; // 在 espStub 上存储引用
   espStub.addEventListener("disconnect", handleDisconnect);
 }
 
 /**
  * @name changeBaudRate
- * Change handler for the Baud Rate selector.
+ * 波特率选择器的更改处理程序。
  */
 async function changeBaudRate() {
   saveSetting("baudrate", baudRateSelect.value);
@@ -524,7 +524,7 @@ async function changeBaudRate() {
 
 /**
  * @name clickAutoscroll
- * Change handler for the Autoscroll checkbox.
+ * 自动滚动复选框的更改处理程序。
  */
 async function clickAutoscroll() {
   saveSetting("autoscroll", autoscroll.checked);
@@ -532,7 +532,7 @@ async function clickAutoscroll() {
 
 /**
  * @name clickDarkMode
- * Change handler for the Dark Mode checkbox.
+ * 深色模式复选框的更改处理程序。
  */
 async function clickDarkMode() {
   updateTheme();
@@ -541,16 +541,16 @@ async function clickDarkMode() {
 
 /**
  * @name clickDebugMode
- * Change handler for the Debug Mode checkbox.
+ * 调试模式复选框的更改处理程序。
  */
 async function clickDebugMode() {
   saveSetting("debugmode", debugMode.checked);
-  logMsg("Debug mode " + (debugMode.checked ? "enabled" : "disabled"));
+  logMsg("调试模式 " + (debugMode.checked ? "已启用" : "已禁用"));
 }
 
 /**
  * @name clickShowLog
- * Change handler for the Show Log checkbox.
+ * 显示日志复选框的更改处理程序。
  */
 async function clickShowLog() {
   saveSetting("showlog", showLog.checked);
@@ -559,11 +559,11 @@ async function clickShowLog() {
 
 /**
  * @name updateLogVisibility
- * Update log and log controls visibility
+ * 更新日志和日志控件的可见性
  */
 function updateLogVisibility() {
   const logControls = document.querySelector(".log-controls");
-  
+
   if (showLog.checked) {
     log.classList.remove("hidden");
     if (logControls) {
@@ -579,40 +579,40 @@ function updateLogVisibility() {
 
 /**
  * @name updateMainPadding
- * Dynamically adjust main content padding based on header height
+ * 根据头部高度动态调整主要内容内边距
  */
 function updateMainPadding() {
-  // Use requestAnimationFrame to ensure DOM has updated
+  // 使用 requestAnimationFrame 确保 DOM 已更新
   requestAnimationFrame(() => {
     const header = document.querySelector('.header');
     const main = document.querySelector('.main');
-    
-    // Guard against missing elements
+
+    // 防止缺少元素
     if (!header || !main) {
       return;
     }
-    
+
     const headerHeight = header.offsetHeight;
-    // Add small buffer (10px) for better spacing
+    // 添加小缓冲区（10px）以获得更好的间距
     main.style.paddingTop = (headerHeight + 10) + 'px';
   });
 }
 
 /**
  * @name clickErase
- * Click handler for the erase button.
+ * 擦除按钮的点击处理程序。
  */
 async function clickErase() {
   if (
-    window.confirm("This will erase the entire flash. Click OK to continue.")
+    window.confirm("这将擦除整个闪存。点击确定继续。")
   ) {
     butErase.disabled = true;
     butProgram.disabled = true;
     try {
-      logMsg("Erasing flash memory. Please wait...");
+      logMsg("正在擦除闪存，请稍候...");
       let stamp = Date.now();
       await espStub.eraseFlash();
-      logMsg("Finished. Took " + (Date.now() - stamp) + "ms to erase.");
+      logMsg("完成。擦除耗时 " + (Date.now() - stamp) + " 毫秒。");
     } catch (e) {
       errorMsg(e);
     } finally {
@@ -625,7 +625,7 @@ async function clickErase() {
 
 /**
  * @name clickProgram
- * Click handler for the program button.
+ * 编程按钮的点击处理程序。
  */
 async function clickProgram() {
   const readUploadedFileAsArrayBuffer = (inputFile) => {
@@ -634,7 +634,7 @@ async function clickProgram() {
     return new Promise((resolve, reject) => {
       reader.onerror = () => {
         reader.abort();
-        reject(new DOMException("Problem parsing input file."));
+        reject(new DOMException("解析输入文件时出现问题。"));
       };
 
       reader.onload = () => {
@@ -680,13 +680,13 @@ async function clickProgram() {
   butErase.disabled = false;
   baudRateSelect.disabled = false;
   butProgram.disabled = getValidFiles().length == 0;
-  logMsg("To run the new firmware, please reset your device.");
+  logMsg("要运行新固件，请重置您的设备。");
 }
 
 function getValidFiles() {
-  // Get a list of file and offsets
-  // This will be used to check if we have valid stuff
-  // and will also return a list of files to program
+  // 获取文件和偏移列表
+  // 用于检查是否有有效内容
+  // 并返回要编程的文件列表
   let validFiles = [];
   let offsetVals = [];
   for (let i = 0; i < firmware.length; i++) {
@@ -701,7 +701,7 @@ function getValidFiles() {
 
 /**
  * @name checkProgrammable
- * Check if the conditions to program the device are sufficient
+ * 检查编程设备条件是否充足
  */
 async function checkProgrammable() {
   butProgram.disabled = getValidFiles().length == 0;
@@ -709,7 +709,7 @@ async function checkProgrammable() {
 
 /**
  * @name checkFirmware
- * Handler for firmware upload changes
+ * 固件上传更改的处理程序
  */
 async function checkFirmware(event) {
   let filename = event.target.value.split("\\").pop();
@@ -719,7 +719,7 @@ async function checkFirmware(event) {
     label.innerHTML = filename;
     icon.classList.add("hidden");
   } else {
-    label.innerHTML = "Choose a file&hellip;";
+    label.innerHTML = "选择文件…";
     icon.classList.remove("hidden");
   }
 
@@ -729,20 +729,20 @@ async function checkFirmware(event) {
 
 /**
  * @name updateUploadRowsVisibility
- * Show/hide upload rows dynamically - only for flash write section
+ * 动态显示/隐藏上传行 - 仅用于闪存写入部分
  */
 function updateUploadRowsVisibility() {
   const uploadRows = document.querySelectorAll(".upload");
   let lastFilledIndex = -1;
-  
-  // Find the last filled row
+
+  // 查找最后一个已填充的行
   for (let i = 0; i < firmware.length; i++) {
     if (firmware[i].files.length > 0) {
       lastFilledIndex = i;
     }
   }
-  
-  // Show rows up to lastFilledIndex + 1 (next empty row), minimum 1 row
+
+  // 显示直到 lastFilledIndex + 1 的行（下一个空行），最少显示 1 行
   for (let i = 0; i < uploadRows.length; i++) {
     if (i <= lastFilledIndex + 1) {
       uploadRows[i].style.display = "flex";
@@ -754,29 +754,29 @@ function updateUploadRowsVisibility() {
 
 /**
  * @name clickReadFlash
- * Click handler for the read flash button.
+ * 读取闪存按钮的点击处理程序。
  */
 async function clickReadFlash() {
   const offset = parseInt(readOffset.value, 16);
   const size = parseInt(readSize.value, 16);
 
   if (isNaN(offset) || isNaN(size) || size <= 0) {
-    errorMsg("Invalid offset or size value");
+    errorMsg("无效的偏移或大小值");
     return;
   }
 
-  // Prompt user for filename
+  // 提示用户输入文件名
   const defaultFilename = `flash_0x${offset.toString(16)}_0x${size.toString(16)}.bin`;
-  const filename = prompt(`Enter filename for flash data:`, defaultFilename);
+  const filename = prompt(`输入闪存数据的文件名：`, defaultFilename);
 
-  // User cancelled
+  // 用户取消
   if (filename === null) {
     return;
   }
 
-  // User entered empty string
+  // 用户输入空字符串
   if (filename.trim() === "") {
-    errorMsg("Filename cannot be empty");
+    errorMsg("文件名不能为空");
     return;
   }
 
@@ -799,9 +799,9 @@ async function clickReadFlash() {
       }
     );
 
-    logMsg(`Successfully read ${data.length} bytes from flash`);
+    logMsg(`成功从闪存读取 ${data.length} 字节`);
 
-    // Create a download link with user-specified filename
+    // 使用用户指定的文件名创建下载链接
     const blob = new Blob([data], { type: "application/octet-stream" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -812,9 +812,9 @@ async function clickReadFlash() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    logMsg(`Flash data downloaded as "${filename}"`);
+    logMsg(`闪存数据已下载为“${filename}”`);
   } catch (e) {
-    errorMsg("Failed to read flash: " + e);
+    errorMsg("读取闪存失败：" + e);
   } finally {
     readProgress.classList.add("hidden");
     readProgress.querySelector("div").style.width = "0";
@@ -829,11 +829,11 @@ async function clickReadFlash() {
 
 /**
  * @name clickReadPartitions
- * Click handler for the read partitions button.
+ * 读取分区表按钮的点击处理程序。
  */
 async function clickReadPartitions() {
   const PARTITION_TABLE_OFFSET = 0x8000;
-  const PARTITION_TABLE_SIZE = 0x1000; // Read 4KB to get all partitions
+  const PARTITION_TABLE_SIZE = 0x1000; // 读取 4KB 以获取所有分区
 
   butReadPartitions.disabled = true;
   butErase.disabled = true;
@@ -841,24 +841,24 @@ async function clickReadPartitions() {
   butReadFlash.disabled = true;
 
   try {
-    logMsg("Reading partition table from 0x8000...");
-    
+    logMsg("正在从 0x8000 读取分区表...");
+
     const data = await espStub.readFlash(PARTITION_TABLE_OFFSET, PARTITION_TABLE_SIZE);
-    
+
     const partitions = parsePartitionTable(data);
-    
+
     if (partitions.length === 0) {
-      errorMsg("No valid partition table found");
+      errorMsg("未找到有效的分区表");
       return;
     }
 
-    logMsg(`Found ${partitions.length} partition(s)`);
-    
-    // Display partitions
+    logMsg(`找到 ${partitions.length} 个分区`);
+
+    // 显示分区
     displayPartitions(partitions);
-    
+
   } catch (e) {
-    errorMsg("Failed to read partition table: " + e);
+    errorMsg("读取分区表失败：" + e);
   } finally {
     butReadPartitions.disabled = false;
     butErase.disabled = false;
@@ -868,7 +868,7 @@ async function clickReadPartitions() {
 }
 
 /**
- * Parse partition table from binary data
+ * 从二进制数据解析分区表
  */
 function parsePartitionTable(data) {
   const PARTITION_MAGIC = 0x50aa;
@@ -877,17 +877,17 @@ function parsePartitionTable(data) {
 
   for (let i = 0; i < data.length; i += PARTITION_ENTRY_SIZE) {
     const magic = data[i] | (data[i + 1] << 8);
-    
+
     if (magic !== PARTITION_MAGIC) {
-      break; // End of partition table
+      break; // 分区表结束
     }
 
     const type = data[i + 2];
     const subtype = data[i + 3];
     const offset = data[i + 4] | (data[i + 5] << 8) | (data[i + 6] << 16) | (data[i + 7] << 24);
     const size = data[i + 8] | (data[i + 9] << 8) | (data[i + 10] << 16) | (data[i + 11] << 24);
-    
-    // Read name (16 bytes, null-terminated)
+
+    // 读取名称（16 字节，空终止）
     let name = "";
     for (let j = 12; j < 28; j++) {
       if (data[i + j] === 0) break;
@@ -896,7 +896,7 @@ function parsePartitionTable(data) {
 
     const flags = data[i + 28] | (data[i + 29] << 8) | (data[i + 30] << 16) | (data[i + 31] << 24);
 
-    // Get type names
+    // 获取类型名称
     const typeNames = { 0x00: "app", 0x01: "data" };
     const appSubtypes = {
       0x00: "factory", 0x10: "ota_0", 0x11: "ota_1", 0x12: "ota_2",
@@ -933,22 +933,22 @@ function parsePartitionTable(data) {
 }
 
 /**
- * Display partitions in the UI
+ * 在 UI 中显示分区
  */
 function displayPartitions(partitions) {
   partitionList.innerHTML = "";
   partitionList.classList.remove("hidden");
-  
-  // Hide the Read Partition Table button after successful read
+
+  // 成功读取后隐藏“读取分区表”按钮
   butReadPartitions.classList.add("hidden");
 
   const table = document.createElement("table");
   table.className = "partition-table-display";
-  
-  // Header
+
+  // 表头
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  ["Name", "Type", "SubType", "Offset", "Size", "Action"].forEach(text => {
+  ["名称", "类型", "子类型", "偏移", "大小", "操作"].forEach(text => {
     const th = document.createElement("th");
     th.textContent = text;
     headerRow.appendChild(th);
@@ -956,77 +956,77 @@ function displayPartitions(partitions) {
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
-  // Body
+  // 表体
   const tbody = document.createElement("tbody");
   partitions.forEach(partition => {
     const row = document.createElement("tr");
-    
-    // Name
+
+    // 名称
     const nameCell = document.createElement("td");
-    nameCell.setAttribute("data-label", "Name");
+    nameCell.setAttribute("data-label", "名称");
     nameCell.textContent = partition.name;
     row.appendChild(nameCell);
-    
-    // Type
+
+    // 类型
     const typeCell = document.createElement("td");
-    typeCell.setAttribute("data-label", "Type");
+    typeCell.setAttribute("data-label", "类型");
     typeCell.textContent = partition.typeName;
     row.appendChild(typeCell);
-    
-    // SubType
+
+    // 子类型
     const subtypeCell = document.createElement("td");
-    subtypeCell.setAttribute("data-label", "SubType");
+    subtypeCell.setAttribute("data-label", "子类型");
     subtypeCell.textContent = partition.subtypeName;
     row.appendChild(subtypeCell);
-    
-    // Offset
+
+    // 偏移
     const offsetCell = document.createElement("td");
-    offsetCell.setAttribute("data-label", "Offset");
+    offsetCell.setAttribute("data-label", "偏移");
     offsetCell.textContent = `0x${partition.offset.toString(16)}`;
     row.appendChild(offsetCell);
-    
-    // Size
+
+    // 大小
     const sizeCell = document.createElement("td");
-    sizeCell.setAttribute("data-label", "Size");
+    sizeCell.setAttribute("data-label", "大小");
     sizeCell.textContent = formatSize(partition.size);
     row.appendChild(sizeCell);
-    
-    // Action
+
+    // 操作
     const actionCell = document.createElement("td");
-    actionCell.setAttribute("data-label", "Action");
+    actionCell.setAttribute("data-label", "操作");
     const downloadBtn = document.createElement("button");
-    downloadBtn.textContent = "Download";
+    downloadBtn.textContent = "下载";
     downloadBtn.className = "partition-download-btn";
     downloadBtn.onclick = () => downloadPartition(partition);
     actionCell.appendChild(downloadBtn);
     row.appendChild(actionCell);
-    
+
     tbody.appendChild(row);
   });
   table.appendChild(tbody);
-  
+
   partitionList.appendChild(table);
 }
 
 /**
- * Download a partition
+ * 下载分区
  */
 async function downloadPartition(partition) {
-  // Prompt user for filename
+  // 提示用户输入文件名
   const defaultFilename = `${partition.name}_0x${partition.offset.toString(16)}.bin`;
   const filename = prompt(
-    `Enter filename for partition "${partition.name}":`,
+    `输入分区“${partition.name}”的文件名：`,
     defaultFilename
   );
 
-  // User cancelled
+  // 用户取消
   if (filename === null) {
     return;
   }
 
-  // User entered empty string
+  // 用户输入空字符串
   if (filename.trim() === "") {
-    errorMsg("Filename cannot be empty");
+    errorMsg("文件名不能为空");
     return;
   }
 
@@ -1038,7 +1038,7 @@ async function downloadPartition(partition) {
     progressBar.style.width = "0%";
 
     logMsg(
-      `Downloading partition "${partition.name}" (${formatSize(partition.size)})...`
+      `正在下载分区“${partition.name}”（${formatSize(partition.size)}）...`
     );
 
     const data = await espStub.readFlash(
@@ -1050,7 +1050,7 @@ async function downloadPartition(partition) {
       }
     );
 
-    // Create download with user-specified filename
+    // 使用用户指定的文件名创建下载
     const blob = new Blob([data], { type: "application/octet-stream" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1061,9 +1061,9 @@ async function downloadPartition(partition) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    logMsg(`Partition "${partition.name}" downloaded as "${filename}"`);
+    logMsg(`分区“${partition.name}”已下载为“${filename}”`);
   } catch (e) {
-    errorMsg(`Failed to download partition: ${e}`);
+    errorMsg(`下载分区失败：${e}`);
   } finally {
     partitionProgress.classList.add("hidden");
     progressBar.style.width = "0%";
@@ -1071,7 +1071,7 @@ async function downloadPartition(partition) {
 }
 
 /**
- * Format size in human-readable format
+ * 以人类可读格式格式化大小
  */
 function formatSize(bytes) {
   if (bytes < 1024) {
@@ -1085,10 +1085,10 @@ function formatSize(bytes) {
 
 /**
  * @name clickClear
- * Click handler for the clear button.
+ * 清除按钮的点击处理程序。
  */
 async function clickClear() {
-// reset();     Reset function wasnt declared.
+// reset();     reset 函数未声明。
   log.innerHTML = "";
 }
 
@@ -1118,12 +1118,12 @@ function toggleUIToolbar(show) {
 }
 
 function toggleUIConnected(connected) {
-  let lbl = "Connect";
+  let lbl = "连接";
   const header = document.querySelector(".header");
   const main = document.querySelector(".main");
-  
+
   if (connected) {
-    lbl = "Disconnect";
+    lbl = "断开连接";
     isConnected = true;
 
   } else {
@@ -1134,14 +1134,14 @@ function toggleUIConnected(connected) {
 }
 
 function loadAllSettings() {
-  // Load all saved settings or defaults
+  // 加载所有保存的设置或默认值
   autoscroll.checked = loadSetting("autoscroll", true);
   baudRateSelect.value = loadSetting("baudrate", 2000000);
   darkMode.checked = loadSetting("darkmode", false);
   debugMode.checked = loadSetting("debugmode", false);
   showLog.checked = loadSetting("showlog", false);
-  
-  // Apply show log setting
+
+  // 应用显示日志设置
   updateLogVisibility();
 }
 

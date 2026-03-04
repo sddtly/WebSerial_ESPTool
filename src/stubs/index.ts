@@ -39,7 +39,7 @@ export const getStubCode = async (
 ): Promise<Stub | null> => {
   let stubcode!: LoadedStub;
 
-  // Chips without stub support yet
+  // 尚无桩代码支持的芯片
   if (
     chipFamily == CHIP_FAMILY_ESP32H4 ||
     chipFamily == CHIP_FAMILY_ESP32H21 ||
@@ -69,18 +69,18 @@ export const getStubCode = async (
   } else if (chipFamily == CHIP_FAMILY_ESP32H2) {
     stubcode = await import("./esp32h2.json");
   } else if (chipFamily == CHIP_FAMILY_ESP32P4) {
-    // ESP32-P4: Use esp32p4r3.json for Rev. 300+, esp32p4.json for older revisions
+    // ESP32-P4：对于版本号 300+ 使用 esp32p4r3.json，旧版本使用 esp32p4.json
     if (chipRevision !== null && chipRevision !== undefined && chipRevision >= 300) {
       stubcode = await import("./esp32p4r3.json");
     } else {
       stubcode = await import("./esp32p4.json");
     }
   } else {
-    // Unknown chip family - no stub available
+    // 未知的芯片系列 - 没有可用的桩代码
     return null;
   }
 
-  // Base64 decode the text and data
+  // 对文本和数据进行 Base64 解码
   return {
     ...stubcode,
     text: toByteArray(atob(stubcode.text)),

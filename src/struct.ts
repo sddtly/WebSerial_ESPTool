@@ -44,7 +44,7 @@ const lut: DataType = {
 export const pack = (format: string, ...data: number[]) => {
   let pointer = 0;
   if (format.replace(/[<>]/, "").length != data.length) {
-    throw "Pack format to Argument count mismatch";
+    throw "打包格式与参数数量不匹配";
   }
   const bytes: number[] = [];
   let littleEndian = true;
@@ -61,7 +61,7 @@ export const pack = (format: string, ...data: number[]) => {
 
   function pushBytes(formatChar: string, value: number) {
     if (!(formatChar in lut)) {
-      throw "Unhandled character '" + formatChar + "' in pack format";
+      throw "打包格式中出现未处理的字符 '" + formatChar + "'";
     }
     const dataSize = lut[formatChar].bytes;
     const view = new DataView(new ArrayBuffer(dataSize));
@@ -92,7 +92,7 @@ export const unpack = (format: string, bytes: number[]) => {
 
   function pushData(formatChar: string) {
     if (!(formatChar in lut)) {
-      throw "Unhandled character '" + formatChar + "' in unpack format";
+      throw "解包格式中出现未处理的字符 '" + formatChar + "'";
     }
     const dataSize = lut[formatChar].bytes;
     const view = new DataView(new ArrayBuffer(dataSize));

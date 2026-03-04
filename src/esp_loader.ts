@@ -138,7 +138,7 @@ import { hexFormatter, padTo, sleep, slipEncode, toHex } from "./util";
 import { deflate } from "pako";
 import { pack, unpack } from "./struct";
 
-// Interface for WebUSB Serial Port (extends SerialPort with WebUSB-specific methods)
+// WebUSB 串口接口（扩展了 SerialPort，添加了 WebUSB 特定的方法）
 interface WebUSBSerialPort extends SerialPort {
   isWebUSB?: boolean;
   maxTransferSize?: number;
@@ -181,14 +181,14 @@ export class ESPLoader extends EventTarget {
   public _isUsbJtagOrOtg: boolean | undefined = undefined;
 
   /**
-   * Check if device is using USB-JTAG or USB-OTG (not external serial chip)
-   * Returns undefined if not yet determined
+   * 检查设备是否使用 USB-JTAG 或 USB-OTG（而不是外部串行芯片）
+   * 如果尚未确定，返回 undefined
    */
   public get isUsbJtagOrOtg(): boolean | undefined {
     return this._parent ? this._parent._isUsbJtagOrOtg : this._isUsbJtagOrOtg;
   }
 
-  // Adaptive speed adjustment for flash read operations
+  // 用于 flash 读取操作的适应性速度调整
   private __adaptiveBlockMultiplier: number = 1;
   private __adaptiveMaxInFlightMultiplier: number = 1;
   private __consecutiveSuccessfulChunks: number = 0;
@@ -203,8 +203,8 @@ export class ESPLoader extends EventTarget {
     super();
   }
 
-  // Chip properties with parent delegation
-  // chipFamily accessed before initialization as designed
+  // 芯片属性，带有父级委托
+  // chipFamily 在初始化之前被访问，这是设计使然
   get chipFamily(): ChipFamily {
     return this._parent ? this._parent.chipFamily : this.__chipFamily!;
   }
@@ -253,7 +253,7 @@ export class ESPLoader extends EventTarget {
     }
   }
 
-  // Console mode with parent delegation
+  // 控制台模式，带有父级委托
   private get _consoleMode(): boolean {
     return this._parent ? this._parent._consoleMode : this.__consoleMode;
   }
@@ -266,7 +266,7 @@ export class ESPLoader extends EventTarget {
     }
   }
 
-  // Public setter for console mode (used by script.js)
+  // 控制台模式的公共设置器（由 script.js 使用）
   public setConsoleMode(value: boolean): void {
     this._consoleMode = value;
   }
@@ -276,7 +276,7 @@ export class ESPLoader extends EventTarget {
       return this._parent._inputBuffer;
     }
     if (this.__inputBuffer === undefined) {
-      throw new Error("_inputBuffer accessed before initialization");
+      throw new Error("_inputBuffer 在初始化之前被访问");
     }
     return this.__inputBuffer;
   }
@@ -295,12 +295,12 @@ export class ESPLoader extends EventTarget {
     }
   }
 
-  // Get available bytes in buffer (from read index to end)
+  // 获取缓冲区中的可用字节数（从读取索引到末尾）
   private get _inputBufferAvailable(): number {
     return this._inputBuffer.length - this._inputBufferReadIndex;
   }
 
-  // Read one byte from buffer (ring-buffer style with index pointer)
+  // 从缓冲区读取一个字节（带索引指针的环形缓冲区样式）
   private _readByte(): number | undefined {
     if (this._inputBufferReadIndex >= this._inputBuffer.length) {
       return undefined;
@@ -308,19 +308,19 @@ export class ESPLoader extends EventTarget {
     return this._inputBuffer[this._inputBufferReadIndex++];
   }
 
-  // Clear input buffer and reset read index
+  // 清空输入缓冲区并重置读取索引
   private _clearInputBuffer(): void {
     this._inputBuffer.length = 0;
     this._inputBufferReadIndex = 0;
   }
 
-  // Compact buffer when read index gets too large (prevent memory growth)
+  // 当读取索引变得太大时压缩缓冲区（防止内存增长）
   private _compactInputBuffer(): void {
     if (
       this._inputBufferReadIndex > 1000 &&
       this._inputBufferReadIndex > this._inputBuffer.length / 2
     ) {
-      // Remove already-read bytes and reset index
+      // 移除已读取的字节并重置索引
       this._inputBuffer.splice(0, this._inputBufferReadIndex);
       this._inputBufferReadIndex = 0;
     }
@@ -452,13 +452,13 @@ export class ESPLoader extends EventTarget {
     vendorId: number,
     productId: number,
   ): { name: string; maxBaudrate?: number } {
-    // Common USB-Serial chip vendors and their products
+    // 常见的 USB 串行芯片厂商及其产品
     const chips: Record<
       number,
       Record<number, { name: string; maxBaudrate?: number }>
     > = {
       0x1a86: {
-        // QinHeng Electronics
+        // 沁恒电子
         0x7522: { name: "CH340", maxBaudrate: 460800 },
         0x7523: { name: "CH340", maxBaudrate: 460800 },
         0x7584: { name: "CH340", maxBaudrate: 460800 },
@@ -482,10 +482,10 @@ export class ESPLoader extends EventTarget {
         0x6015: { name: "FT230X", maxBaudrate: 3000000 },
       },
       0x303a: {
-        // Espressif (native USB)
-        0x2: { name: "ESP32-S2 Native USB", maxBaudrate: 2000000 },
-        0x12: { name: "ESP32-P4 Native USB", maxBaudrate: 2000000 },
-        0x1001: { name: "ESP32 Native USB", maxBaudrate: 2000000 },
+        // 乐鑫（原生 USB）
+        0x2: { name: "ESP32-S2 原生 USB", maxBaudrate: 2000000 },
+        0x12: { name: "ESP32-P4 原生 USB", maxBaudrate: 2000000 },
+        0x1001: { name: "ESP32 原生 USB", maxBaudrate: 2000000 },
       },
     };
 
@@ -495,7 +495,7 @@ export class ESPLoader extends EventTarget {
     }
 
     return {
-      name: `Unknown (VID: 0x${vendorId.toString(16)}, PID: 0x${productId.toString(16)})`,
+      name: `未知 (VID: 0x${vendorId.toString(16)}, PID: 0x${productId.toString(16)})`,
     };
   }
 
@@ -505,7 +505,7 @@ export class ESPLoader extends EventTarget {
       this.__inputBufferReadIndex = 0;
       this.__totalBytesRead = 0;
 
-      // Detect and log USB-Serial chip info
+      // 检测并记录 USB 串行芯片信息
       const portInfo = this.port.getInfo();
       if (portInfo.usbVendorId && portInfo.usbProductId) {
         const chipInfo = this.detectUSBSerialChip(
@@ -513,19 +513,19 @@ export class ESPLoader extends EventTarget {
           portInfo.usbProductId,
         );
         this.logger.log(
-          `USB-Serial: ${chipInfo.name} (VID: 0x${portInfo.usbVendorId.toString(16)}, PID: 0x${portInfo.usbProductId.toString(16)})`,
+          `USB 串行芯片: ${chipInfo.name} (VID: 0x${portInfo.usbVendorId.toString(16)}, PID: 0x${portInfo.usbProductId.toString(16)})`,
         );
         if (chipInfo.maxBaudrate) {
           this._maxUSBSerialBaudrate = chipInfo.maxBaudrate;
-          this.logger.log(`Max baudrate: ${chipInfo.maxBaudrate}`);
+          this.logger.log(`最大波特率: ${chipInfo.maxBaudrate}`);
         }
-        // Detect ESP32-S2 Native USB
+        // 检测 ESP32-S2 原生 USB
         if (portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x2) {
           this._isESP32S2NativeUSB = true;
         }
 
-        // Detect CDC devices for adaptive speed adjustment
-        // Espressif Native USB (VID: 0x303a) or CH343 (VID: 0x1a86, PID: 0x55d3)
+        // 检测用于适应性速度调整的 CDC 设备
+        // 乐鑫原生 USB (VID: 0x303a) 或 CH343 (VID: 0x1a86, PID: 0x55d3)
         if (
           portInfo.usbVendorId === 0x303a ||
           (portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3)
@@ -534,42 +534,42 @@ export class ESPLoader extends EventTarget {
         }
       }
 
-      // Don't await this promise so it doesn't block rest of method.
+      // 不要等待这个 Promise，以免阻塞方法的其余部分。
       this.readLoop();
     }
 
-    // Try to connect with different reset strategies
+    // 尝试使用不同的复位策略进行连接
     await this.connectWithResetStrategies();
 
-    // Detect chip type
+    // 检测芯片类型
     await this.detectChip();
 
-    // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
+    // 为 ESP32-P4 Rev 301 开启闪存电源（必须在加载 stub 之前完成）
     if (this.chipFamily === CHIP_FAMILY_ESP32P4 && this.chipRevision === 301) {
       await this.powerOnFlash();
     }
 
-    // Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
-    // This is needed to determine the correct reset strategy for console mode
+    // 检测设备是否使用 USB-JTAG/串行或 USB-OTG（而不是外部串行芯片）
+    // 这对于确定控制台模式的正确复位策略是必要的
     try {
       this._isUsbJtagOrOtg = await this.detectUsbConnectionType();
       this.logger.debug(
-        `USB connection type: ${this._isUsbJtagOrOtg ? "USB-JTAG/OTG" : "External Serial Chip"}`,
+        `USB 连接类型: ${this._isUsbJtagOrOtg ? "USB-JTAG/OTG" : "外部串行芯片"}`,
       );
     } catch (err) {
-      this.logger.debug(`Could not detect USB connection type: ${err}`);
+      this.logger.debug(`无法检测 USB 连接类型: ${err}`);
     }
 
     try {
       const usbMode = await this.getUsbMode();
       this.logger.debug(
-        `USB mode (register): ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
+        `USB 模式（寄存器）: ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
       );
     } catch (err) {
-      this.logger.debug(`Could not detect USB mode: ${err}`);
+      this.logger.debug(`无法检测 USB 模式: ${err}`);
     }
 
-    // Read the OTP data for this chip and store into this.efuses array
+    // 读取此芯片的 OTP 数据并存储到 this.efuses 数组中
     const FlAddr = getSpiFlashAddresses(this.getChipFamily());
     const AddrMAC = FlAddr.macFuse;
     for (let i = 0; i < 4; i++) {
@@ -577,23 +577,23 @@ export class ESPLoader extends EventTarget {
     }
     const revisionInfo =
       this.chipRevision !== null && this.chipRevision !== undefined
-        ? ` (revision ${this.chipRevision})`
+        ? ` (修订版本 ${this.chipRevision})`
         : "";
-    this.logger.log(`Connected to ${this.chipName}${revisionInfo}`);
+    this.logger.log(`已连接到 ${this.chipName}${revisionInfo}`);
     this.logger.debug(
-      `Bootloader flash offset: 0x${FlAddr.flashOffs.toString(16)}`,
+      `引导加载程序闪存偏移量: 0x${FlAddr.flashOffs.toString(16)}`,
     );
 
-    // Mark initialization as successful
+    // 标记初始化成功
     this._initializationSucceeded = true;
   }
 
   /**
-   * Detect chip type using GET_SECURITY_INFO (for newer chips) or magic value (for older chips)
+   * 使用 GET_SECURITY_INFO（对于较新的芯片）或魔数（对于较旧的芯片）检测芯片类型
    */
   async detectChip() {
     try {
-      // Try GET_SECURITY_INFO command first (ESP32-C3 and later)
+      // 首先尝试 GET_SECURITY_INFO 命令（ESP32-C3 及更高版本）
       const securityInfo = await this.getSecurityInfo();
       const chipId = securityInfo.chipId;
 
@@ -603,7 +603,7 @@ export class ESPLoader extends EventTarget {
         this.chipFamily = chipInfo.family;
 
         this.chipRevision = await this.getChipRevision();
-        this.logger.debug(`${this.chipName} revision: ${this.chipRevision}`);
+        this.logger.debug(`${this.chipName} 修订版本: ${this.chipRevision}`);
 
         if (
           this.chipFamily === CHIP_FAMILY_ESP32P4 &&
@@ -615,62 +615,56 @@ export class ESPLoader extends EventTarget {
         }
 
         this.logger.debug(
-          `Detected chip via IMAGE_CHIP_ID: ${chipId} (${this.chipName})`,
+          `通过 IMAGE_CHIP_ID 检测到芯片: ${chipId} (${this.chipName})`,
         );
         return;
       }
 
-      this.logger.debug(
-        `Unknown IMAGE_CHIP_ID: ${chipId}, falling back to magic value detection`,
-      );
+      this.logger.debug(`未知的 IMAGE_CHIP_ID: ${chipId}，回退到魔数检测`);
     } catch (error) {
-      // GET_SECURITY_INFO not supported, fall back to magic value detection
-      this.logger.debug(
-        `GET_SECURITY_INFO failed, using magic value detection: ${error}`,
-      );
+      // GET_SECURITY_INFO 不受支持，回退到魔数检测
+      this.logger.debug(`GET_SECURITY_INFO 失败，使用魔数检测: ${error}`);
 
-      // Drain input buffer for CP210x compatibility on Windows
-      // This ensures all error responses are cleared before continuing
+      // 在 Windows 上为 CP210x 兼容性清空输入缓冲区
+      // 这确保在继续之前清除所有错误响应
       await this.drainInputBuffer(200);
 
-      // Clear input buffer and re-sync to recover from failed command
+      // 清空输入缓冲区并重新同步以从失败的命令中恢复
       this._clearInputBuffer();
       await sleep(SYNC_TIMEOUT);
 
-      // Re-sync with the chip to ensure clean communication
+      // 重新与芯片同步以确保通信清晰
       try {
         await this.sync();
       } catch (syncErr) {
-        this.logger.debug(
-          `Re-sync after GET_SECURITY_INFO failure: ${syncErr}`,
-        );
+        this.logger.debug(`GET_SECURITY_INFO 失败后重新同步: ${syncErr}`);
       }
     }
 
-    // Fallback: Use magic value detection for ESP8266, ESP32, ESP32-S2
+    // 回退：为 ESP8266、ESP32、ESP32-S2 使用魔数检测
     const chipMagicValue = await this.readRegister(CHIP_DETECT_MAGIC_REG_ADDR);
     const chip = CHIP_DETECT_MAGIC_VALUES[chipMagicValue >>> 0];
     if (chip === undefined) {
       throw new Error(
-        `Unknown Chip: Hex: ${toHex(
+        `未知芯片: 十六进制: ${toHex(
           chipMagicValue >>> 0,
           8,
-        ).toLowerCase()} Number: ${chipMagicValue}`,
+        ).toLowerCase()} 数字: ${chipMagicValue}`,
       );
     }
     this.chipName = chip.name;
     this.chipFamily = chip.family;
 
     this.chipRevision = await this.getChipRevision();
-    this.logger.debug(`${this.chipName} revision: ${this.chipRevision}`);
+    this.logger.debug(`${this.chipName} 修订版本: ${this.chipRevision}`);
 
     if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
       this.chipVariant = this.chipRevision >= 300 ? "rev300" : "rev0";
-      this.logger.debug(`ESP32-P4 variant: ${this.chipVariant}`);
+      this.logger.debug(`ESP32-P4 变体: ${this.chipVariant}`);
     }
 
     this.logger.debug(
-      `Detected chip via magic value: ${toHex(chipMagicValue >>> 0, 8)} (${this.chipName})`,
+      `通过魔数检测到芯片: ${toHex(chipMagicValue >>> 0, 8)} (${this.chipName})`,
     );
   }
 
@@ -773,26 +767,26 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Power on the flash chip for ESP32-P4 Rev 301 (ECO6)
-   * The flash chip is powered off by default on ECO6, when the default flash
-   * voltage changed from 1.8V to 3.3V. This is to prevent damage to 1.8V flash chips.
+   * 为 ESP32-P4 Rev 301 (ECO6) 开启闪存芯片的电源
+   * 在 ECO6 上，闪存芯片默认关闭电源，因为默认闪存电压从 1.8V 变为 3.3V。
+   * 这是为了防止损坏 1.8V 的闪存芯片。
    */
   async powerOnFlash(): Promise<void> {
     if (this.chipFamily !== CHIP_FAMILY_ESP32P4) {
-      return; // Only needed for ESP32-P4
+      return; // 仅对 ESP32-P4 需要
     }
 
     if (this.chipRevision !== 301) {
-      return; // Only needed for Rev 301 (ECO6)
+      return; // 仅对 Rev 301 (ECO6) 需要
     }
 
-    this.logger.debug("Powering on flash for ESP32-P4 Rev 301 (ECO6)");
+    this.logger.debug("正在为 ESP32-P4 Rev 301 (ECO6) 开启闪存电源");
 
-    // Power up pad group
+    // 为 pad 组上电
     await this.writeRegister(ESP32P4_LP_SYSTEM_REG_ANA_XPD_PAD_GROUP_REG, 1);
-    await sleep(10); // 0.01 seconds
+    await sleep(10); // 0.01 秒
 
-    // Flash power up sequence
+    // 闪存上电序列
     const pmuAnaReg = await this.readRegister(
       ESP32P4_PMU_EXT_LDO_P0_0P1A_ANA_REG,
     );
@@ -810,7 +804,7 @@ export class ESPLoader extends EventTarget {
     const pmuDateReg = await this.readRegister(ESP32P4_PMU_DATE_REG);
     await this.writeRegister(ESP32P4_PMU_DATE_REG, pmuDateReg | (3 << 0));
 
-    await sleep(0.05); // 0.00005 seconds = 0.05 ms
+    await sleep(0.05); // 0.00005 秒 = 0.05 毫秒
 
     const pmuAnaReg2 = await this.readRegister(
       ESP32P4_PMU_EXT_LDO_P0_0P1A_ANA_REG,
@@ -826,7 +820,7 @@ export class ESPLoader extends EventTarget {
       pmuReg2 & ~ESP32P4_PMU_0P1A_TARGET0_0,
     );
 
-    // Update eFuse voltage to PMU
+    // 将 eFuse 电压更新到 PMU
     const pmuReg3 = await this.readRegister(ESP32P4_PMU_EXT_LDO_P0_0P1A_REG);
     await this.writeRegister(ESP32P4_PMU_EXT_LDO_P0_0P1A_REG, pmuReg3 | 0x80);
 
@@ -836,13 +830,13 @@ export class ESPLoader extends EventTarget {
       pmuReg4 & ~ESP32P4_PMU_0P1A_FORCE_TIEH_SEL_0,
     );
 
-    await sleep(2); // 0.0018 seconds = 1.8 ms, rounded to 2ms
+    await sleep(2); // 0.0018 秒 = 1.8 毫秒，四舍五入到 2 毫秒
 
-    this.logger.debug("Flash powered on successfully");
+    this.logger.debug("闪存电源已成功开启");
   }
 
   /**
-   * Get security info including chip ID (ESP32-C3 and later)
+   * 获取安全信息，包括芯片 ID（ESP32-C3 及更高版本）
    */
   async getSecurityInfo(): Promise<{
     flags: number;
@@ -857,16 +851,14 @@ export class ESPLoader extends EventTarget {
       0,
     );
 
-    // Some chips/ROM versions return empty response or don't support this command
+    // 某些芯片/ROM 版本返回空响应或不支持此命令
     if (responseData.length === 0) {
-      throw new Error(
-        `GET_SECURITY_INFO not supported or returned empty response`,
-      );
+      throw new Error(`GET_SECURITY_INFO 不受支持或返回空响应`);
     }
 
     if (responseData.length < 12) {
       throw new Error(
-        `Invalid security info response length: ${responseData.length} (expected at least 12 bytes)`,
+        `无效的安全信息响应长度: ${responseData.length}（至少需要 12 字节）`,
       );
     }
 
@@ -892,15 +884,13 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Get MAC address from efuses
+   * 从 efuses 获取 MAC 地址
    */
   async getMacAddress(): Promise<string> {
     if (!this._initializationSucceeded) {
-      throw new Error(
-        "getMacAddress() requires initialize() to have completed successfully",
-      );
+      throw new Error("getMacAddress() 要求 initialize() 成功完成");
     }
-    const macBytes = this.macAddr(); // chip-family-aware
+    const macBytes = this.macAddr(); // 芯片系列感知
     return macBytes
       .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
       .join(":");
@@ -908,11 +898,11 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name readLoop
-   * Reads data from the input stream and places it in the inputBuffer
+   * 从输入流读取数据并将其放入 inputBuffer
    */
   async readLoop() {
     if (this.debug) {
-      this.logger.debug("Starting read loop");
+      this.logger.debug("启动读取循环");
     }
 
     this._reader = this.port.readable!.getReader();
@@ -930,71 +920,66 @@ export class ESPLoader extends EventTarget {
           continue;
         }
 
-        // Always read from browser's serial buffer immediately
-        // to prevent browser buffer overflow. Don't apply back-pressure here.
+        // 始终立即从浏览器的串行缓冲区读取，以防止浏览器缓冲区溢出。这里不应用背压。
         const chunk = Array.from(value as Uint8Array);
         Array.prototype.push.apply(this._inputBuffer, chunk);
 
-        // Track total bytes read from serial port
+        // 跟踪从串口读取的总字节数
         this._totalBytesRead += value.length;
       }
     } catch {
-      //      this.logger.error("Read loop got disconnected");
+      //      this.logger.error("读取循环断开连接");
     } finally {
-      // Always reset reconfiguring flag when read loop ends
-      // This prevents "Cannot write during port reconfiguration" errors
-      // when the read loop dies unexpectedly
+      // 当读取循环结束时始终重置重新配置标志
+      // 这可以防止当读取循环意外死亡时出现“无法在端口重新配置期间写入”错误
       this._isReconfiguring = false;
 
-      // Release reader if still locked
+      // 如果读取器仍被锁定，则释放它
       if (this._reader) {
         try {
           this._reader.releaseLock();
-          this.logger.debug("Reader released in readLoop cleanup");
+          this.logger.debug("读取器在 readLoop 清理中释放");
         } catch (err) {
-          this.logger.debug(`Reader release error in readLoop: ${err}`);
+          this.logger.debug(`读取器在 readLoop 中释放出错: ${err}`);
         }
         this._reader = undefined;
       }
     }
 
-    // Disconnected!
+    // 断开连接！
     this.connected = false;
 
-    // Check if this is ESP32-S2 Native USB that needs port reselection
-    // Only trigger reconnect if initialization did NOT succeed (wrong port)
+    // 检查是否为需要端口重新选择的 ESP32-S2 原生 USB
+    // 仅当初始化未成功（错误的端口）时触发重新连接
     if (this._isESP32S2NativeUSB && !this._initializationSucceeded) {
-      this.logger.log(
-        "ESP32-S2 Native USB detected - requesting port reselection",
-      );
+      this.logger.log("检测到 ESP32-S2 原生 USB - 请求端口重新选择");
       this.dispatchEvent(
         new CustomEvent("esp32s2-usb-reconnect", {
-          detail: { message: "ESP32-S2 Native USB requires port reselection" },
+          detail: { message: "ESP32-S2 原生 USB 需要端口重新选择" },
         }),
       );
     }
 
-    // Only dispatch disconnect event if not suppressed
+    // 仅在未抑制时触发断开连接事件
     if (!this._suppressDisconnect) {
       this.dispatchEvent(new Event("disconnect"));
     }
     this._suppressDisconnect = false;
-    this.logger.debug("Finished read loop");
+    this.logger.debug("读取循环完成");
   }
 
   state_DTR = false;
   state_RTS = false;
 
   // ============================================================================
-  // Web Serial (Desktop) - DTR/RTS Signal Handling & Reset Strategies
+  // Web 串行（桌面端）- DTR/RTS 信号处理与复位策略
   // ============================================================================
 
   async setRTS(state: boolean) {
     await this.port.setSignals({ requestToSend: state });
-    // Work-around for adapters on Windows using the usbser.sys driver:
-    // generate a dummy change to DTR so that the set-control-line-state
-    // request is sent with the updated RTS state and the same DTR state
-    // Referenced to esptool.py
+    // 为使用 usbser.sys 驱动程序的 Windows 适配器解决：
+    // 生成对 DTR 的虚假更改，以便使用更新后的 RTS 状态和相同的 DTR 状态发送设置控制线路状态请求
+    // 参考 esptool.py
     await this.setDTR(this.state_DTR);
   }
 
@@ -1046,66 +1031,66 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetUSBJTAGSerial
-   * USB-JTAG/Serial reset for Web Serial (Desktop)
+   * 用于 Web 串行（桌面端）的 USB-JTAG/串行复位
    */
   async hardResetUSBJTAGSerial() {
     await this.runSignalSequence([
       { rts: false },
-      { dtr: false, delayMs: 100 },
-      { dtr: true, rts: false, delayMs: 100 },
+      { dtr: false, delayMs: 500 },
+      { dtr: true, rts: false, delayMs: 500 },
       { rts: true },
-      { dtr: false, rts: true, delayMs: 100 },
-      { dtr: false, rts: false, delayMs: 200 },
+      { dtr: false, rts: true, delayMs: 500 },
+      { dtr: false, rts: false, delayMs: 600 },
     ]);
   }
 
   /**
    * @name hardResetClassic
-   * Classic reset for Web Serial (Desktop) DTR = IO0, RTS = EN
+   * 用于 Web 串行（桌面端）的经典复位，DTR = IO0，RTS = EN
    */
   async hardResetClassic() {
     await this.runSignalSequence([
-      { dtr: false, rts: true, delayMs: 100 },
-      { dtr: true, rts: false, delayMs: 50 },
-      { dtr: false, delayMs: 200 },
+      { dtr: false, rts: true, delayMs: 500 },
+      { dtr: true, rts: false, delayMs: 450 },
+      { dtr: false, delayMs: 600 },
     ]);
   }
 
   /**
-   * Reset to firmware mode (not bootloader) for Web Serial
-   * Keeps IO0=HIGH during reset so chip boots into firmware
+   * 复位到固件模式（非引导加载程序），用于 Web 串行
+   * 在复位期间保持 IO0=HIGH，以便芯片启动到固件
    */
   async hardResetToFirmware() {
     await this.runSignalSequence([
-      { dtr: false, rts: true, delayMs: 100 },
-      { rts: false, delayMs: 50 },
-      { delayMs: 200 },
+      { dtr: false, rts: true, delayMs: 500 },
+      { rts: false, delayMs: 450 },
+      { delayMs: 600 },
     ]);
   }
 
   /**
    * @name hardResetUnixTight
-   * Unix Tight reset for Web Serial (Desktop) - sets DTR and RTS simultaneously
+   * 用于 Web 串行（桌面端）的 Unix 紧密复位 - 同时设置 DTR 和 RTS
    */
   async hardResetUnixTight() {
     await this.runSignalSequence([
       { dtr: true, rts: true },
       { dtr: false, rts: false },
-      { dtr: false, rts: true, delayMs: 100 },
-      { dtr: true, rts: false, delayMs: 50 },
+      { dtr: false, rts: true, delayMs: 500 },
+      { dtr: true, rts: false, delayMs: 450 },
       { dtr: false, rts: false },
-      { dtr: false, delayMs: 200 },
+      { dtr: false, delayMs: 600 },
     ]);
   }
 
   // ============================================================================
-  // WebUSB (Android) - DTR/RTS Signal Handling & Reset Strategies
+  // WebUSB（安卓端）- DTR/RTS 信号处理与复位策略
   // ============================================================================
 
   async setRTSWebUSB(state: boolean) {
     this.state_RTS = state;
-    // Always specify both signals to avoid flipping the other line
-    // The WebUSB setSignals() now preserves unspecified signals, but being explicit is safer
+    // 始终指定两个信号，以避免翻转另一条线
+    // WebUSB 的 setSignals() 现在会保留未指定的信号，但显式指定更安全
     await (this.port as WebUSBSerialPort).setSignals({
       requestToSend: state,
       dataTerminalReady: this.state_DTR,
@@ -1114,10 +1099,10 @@ export class ESPLoader extends EventTarget {
 
   async setDTRWebUSB(state: boolean) {
     this.state_DTR = state;
-    // Always specify both signals to avoid flipping the other line
+    // 始终指定两个信号，以避免翻转另一条线
     await (this.port as WebUSBSerialPort).setSignals({
       dataTerminalReady: state,
-      requestToSend: this.state_RTS, // Explicitly preserve current RTS state
+      requestToSend: this.state_RTS, // 显式保留当前 RTS 状态
     });
   }
 
@@ -1132,7 +1117,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetUSBJTAGSerialInvertedDTRWebUSB
-   * USB-JTAG/Serial reset with inverted DTR for WebUSB (Android)
+   * 用于 WebUSB（安卓端）的具有反转 DTR 的 USB-JTAG/串行复位
    */
   async hardResetUSBJTAGSerialInvertedDTRWebUSB() {
     await this.runSignalSequence([
@@ -1145,8 +1130,8 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetClassicLongDelayWebUSB
-   * Classic reset with longer delays for WebUSB (Android)
-   * Specifically for CP2102/CH340 which may need more time
+   * 用于 WebUSB（安卓端）的具有较长延迟的经典复位
+   * 专门针对可能需要更多时间的 CP2102/CH340
    */
   async hardResetClassicLongDelayWebUSB() {
     await this.runSignalSequence([
@@ -1158,7 +1143,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetClassicShortDelayWebUSB
-   * Classic reset with shorter delays for WebUSB (Android)
+   * 用于 WebUSB（安卓端）的具有较短延迟的经典复位
    */
   async hardResetClassicShortDelayWebUSB() {
     await this.runSignalSequence([
@@ -1170,7 +1155,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetInvertedWebUSB
-   * Inverted reset sequence for WebUSB (Android) - both signals inverted
+   * 用于 WebUSB（安卓端）的反转复位序列 - 两个信号都反转
    */
   async hardResetInvertedWebUSB() {
     await this.runSignalSequence([
@@ -1182,7 +1167,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetInvertedDTRWebUSB
-   * Only DTR inverted for WebUSB (Android)
+   * 用于 WebUSB（安卓端）的仅 DTR 反转
    */
   async hardResetInvertedDTRWebUSB() {
     await this.runSignalSequence([
@@ -1194,7 +1179,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name hardResetInvertedRTSWebUSB
-   * Only RTS inverted for WebUSB (Android)
+   * 用于 WebUSB（安卓端）的仅 RTS 反转
    */
   async hardResetInvertedRTSWebUSB() {
     await this.runSignalSequence([
@@ -1205,17 +1190,17 @@ export class ESPLoader extends EventTarget {
   }
 
   /**
-   * Check if we're using WebUSB (Android) or Web Serial (Desktop)
+   * 检查我们使用的是 WebUSB（安卓端）还是 Web 串行（桌面端）
    */
   private isWebUSB(): boolean {
-    // WebUSBSerial class has isWebUSB flag - this is the most reliable check
+    // WebUSBSerial 类具有 isWebUSB 标志 - 这是最可靠的检查
     return (this.port as WebUSBSerialPort).isWebUSB === true;
   }
 
   /**
    * @name connectWithResetStrategies
-   * Try different reset strategies to enter bootloader mode
-   * Similar to esptool.py's connect() method with multiple reset strategies
+   * 尝试不同的复位策略以进入引导加载程序模式
+   * 类似于 esptool.py 的 connect() 方法，具有多种复位策略
    */
   async connectWithResetStrategies() {
     const portInfo = this.port.getInfo();
@@ -1223,54 +1208,54 @@ export class ESPLoader extends EventTarget {
     const isEspressifUSB = portInfo.usbVendorId === 0x303a;
 
     //    this.logger.log(
-    //      `Detected USB: VID=0x${portInfo.usbVendorId?.toString(16) || "unknown"}, PID=0x${portInfo.usbProductId?.toString(16) || "unknown"}`,
+    //      `检测到 USB: VID=0x${portInfo.usbVendorId?.toString(16) || "unknown"}, PID=0x${portInfo.usbProductId?.toString(16) || "unknown"}`,
     //    );
 
-    // Define reset strategies to try in order
+    // 定义要按顺序尝试的复位策略
     const resetStrategies: Array<{ name: string; fn: () => Promise<void> }> =
       [];
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
-    // Detect if this is a USB-Serial chip (needs different sync approach)
+    // 检测这是否为 USB 串行芯片（需要不同的同步方法）
     const isUSBSerialChip = !isUSBJTAGSerial && !isEspressifUSB;
 
-    // WebUSB (Android) uses different reset methods than Web Serial (Desktop)
+    // WebUSB（安卓端）使用与 Web 串行（桌面端）不同的复位方法
     if (this.isWebUSB()) {
-      // For USB-Serial chips (CP2102, CH340, etc.), try inverted strategies first
+      // 对于 USB 串行芯片（CP2102、CH340 等），首先尝试反转策略
 
-      // Detect specific chip types once
+      // 一次性检测特定芯片类型
       const isCP2102 = portInfo.usbVendorId === 0x10c4;
       const isCH34x = portInfo.usbVendorId === 0x1a86;
 
-      // Check for ESP32-S2 Native USB (VID: 0x303a, PID: 0x0002)
+      // 检查是否为 ESP32-S2 原生 USB（VID: 0x303a, PID: 0x0002）
       const isESP32S2NativeUSB =
         portInfo.usbVendorId === 0x303a && portInfo.usbProductId === 0x0002;
 
-      // WebUSB Strategy 1: USB-JTAG/Serial reset (for Native USB only)
+      // WebUSB 策略 1：USB-JTAG/串行复位（仅用于原生 USB）
       if (isUSBJTAGSerial || isEspressifUSB) {
         if (isESP32S2NativeUSB) {
-          // ESP32-S2 Native USB: Try multiple strategies
-          // The device might be in JTAG mode OR CDC mode
+          // ESP32-S2 原生 USB：尝试多种策略
+          // 设备可能处于 JTAG 模式或 CDC 模式
 
-          // Strategy 1: USB-JTAG/Serial (works in CDC mode on Desktop)
+          // 策略 1：USB-JTAG/串行（在桌面端的 CDC 模式下有效）
           resetStrategies.push({
-            name: "USB-JTAG/Serial (WebUSB) - ESP32-S2",
+            name: "USB-JTAG/串行 (WebUSB) - ESP32-S2",
             fn: async () => {
               return await self.hardResetUSBJTAGSerial();
             },
           });
 
-          // Strategy 2: USB-JTAG/Serial Inverted DTR (works in JTAG mode)
+          // 策略 2：反转 DTR 的 USB-JTAG/串行（在 JTAG 模式下有效）
           resetStrategies.push({
-            name: "USB-JTAG/Serial Inverted DTR (WebUSB) - ESP32-S2",
+            name: "反转 DTR 的 USB-JTAG/串行 (WebUSB) - ESP32-S2",
             fn: async () => {
               return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
             },
           });
 
-          // Strategy 3: UnixTight (CDC fallback)
+          // 策略 3：UnixTight（CDC 后备）
           resetStrategies.push({
             name: "UnixTight (WebUSB) - ESP32-S2 CDC",
             fn: async () => {
@@ -1278,29 +1263,29 @@ export class ESPLoader extends EventTarget {
             },
           });
 
-          // Strategy 4: Classic reset (CDC fallback)
+          // 策略 4：经典复位（CDC 后备）
           resetStrategies.push({
-            name: "Classic (WebUSB) - ESP32-S2 CDC",
+            name: "经典 (WebUSB) - ESP32-S2 CDC",
             fn: async () => {
               return await self.hardResetClassic();
             },
           });
         } else {
-          // Other USB-JTAG chips: Try Inverted DTR first - works best for ESP32-H2 and other JTAG chips
+          // 其他 USB-JTAG 芯片：首先尝试反转 DTR - 对于 ESP32-H2 和其他 JTAG 芯片效果最佳
           resetStrategies.push({
-            name: "USB-JTAG/Serial Inverted DTR (WebUSB)",
+            name: "反转 DTR 的 USB-JTAG/串行 (WebUSB)",
             fn: async () => {
               return await self.hardResetUSBJTAGSerialInvertedDTRWebUSB();
             },
           });
           resetStrategies.push({
-            name: "USB-JTAG/Serial (WebUSB)",
+            name: "USB-JTAG/串行 (WebUSB)",
             fn: async () => {
               return await self.hardResetUSBJTAGSerial();
             },
           });
           resetStrategies.push({
-            name: "Inverted DTR Classic (WebUSB)",
+            name: "反转 DTR 的经典 (WebUSB)",
             fn: async () => {
               return await self.hardResetInvertedDTRWebUSB();
             },
@@ -1308,10 +1293,10 @@ export class ESPLoader extends EventTarget {
         }
       }
 
-      // For USB-Serial chips, try inverted strategies first
+      // 对于 USB 串行芯片，首先尝试反转策略
       if (isUSBSerialChip) {
         if (isCH34x) {
-          // CH340/CH343: UnixTight works best (like CP2102)
+          // CH340/CH343：UnixTight 效果最佳（类似于 CP2102）
           resetStrategies.push({
             name: "UnixTight (WebUSB) - CH34x",
             fn: async () => {
@@ -1319,32 +1304,32 @@ export class ESPLoader extends EventTarget {
             },
           });
           resetStrategies.push({
-            name: "Classic (WebUSB) - CH34x",
+            name: "经典 (WebUSB) - CH34x",
             fn: async () => {
               return await self.hardResetClassic();
             },
           });
           resetStrategies.push({
-            name: "Inverted Both (WebUSB) - CH34x",
+            name: "反转两者 (WebUSB) - CH34x",
             fn: async () => {
               return await self.hardResetInvertedWebUSB();
             },
           });
           resetStrategies.push({
-            name: "Inverted RTS (WebUSB) - CH34x",
+            name: "反转 RTS (WebUSB) - CH34x",
             fn: async () => {
               return await self.hardResetInvertedRTSWebUSB();
             },
           });
           resetStrategies.push({
-            name: "Inverted DTR (WebUSB) - CH34x",
+            name: "反转 DTR (WebUSB) - CH34x",
             fn: async () => {
               return await self.hardResetInvertedDTRWebUSB();
             },
           });
         } else if (isCP2102) {
-          // CP2102: UnixTight works best (tested and confirmed)
-          // Try it first, then fallback to other strategies
+          // CP2102：UnixTight 效果最佳（已测试并确认）
+          // 首先尝试它，然后回退到其他策略
 
           resetStrategies.push({
             name: "UnixTight (WebUSB) - CP2102",
@@ -1354,34 +1339,34 @@ export class ESPLoader extends EventTarget {
           });
 
           resetStrategies.push({
-            name: "Classic (WebUSB) - CP2102",
+            name: "经典 (WebUSB) - CP2102",
             fn: async () => {
               return await self.hardResetClassic();
             },
           });
 
           resetStrategies.push({
-            name: "Inverted Both (WebUSB) - CP2102",
+            name: "反转两者 (WebUSB) - CP2102",
             fn: async () => {
               return await self.hardResetInvertedWebUSB();
             },
           });
 
           resetStrategies.push({
-            name: "Inverted RTS (WebUSB) - CP2102",
+            name: "反转 RTS (WebUSB) - CP2102",
             fn: async () => {
               return await self.hardResetInvertedRTSWebUSB();
             },
           });
 
           resetStrategies.push({
-            name: "Inverted DTR (WebUSB) - CP2102",
+            name: "反转 DTR (WebUSB) - CP2102",
             fn: async () => {
               return await self.hardResetInvertedDTRWebUSB();
             },
           });
         } else {
-          // For other USB-Serial chips, try UnixTight first, then multiple strategies
+          // 对于其他 USB 串行芯片，首先尝试 UnixTight，然后多种策略
           resetStrategies.push({
             name: "UnixTight (WebUSB)",
             fn: async () => {
@@ -1389,25 +1374,25 @@ export class ESPLoader extends EventTarget {
             },
           });
           resetStrategies.push({
-            name: "Classic (WebUSB)",
+            name: "经典 (WebUSB)",
             fn: async function () {
               return await self.hardResetClassic();
             },
           });
           resetStrategies.push({
-            name: "Inverted Both (WebUSB)",
+            name: "反转两者 (WebUSB)",
             fn: async function () {
               return await self.hardResetInvertedWebUSB();
             },
           });
           resetStrategies.push({
-            name: "Inverted RTS (WebUSB)",
+            name: "反转 RTS (WebUSB)",
             fn: async function () {
               return await self.hardResetInvertedRTSWebUSB();
             },
           });
           resetStrategies.push({
-            name: "Inverted DTR (WebUSB)",
+            name: "反转 DTR (WebUSB)",
             fn: async function () {
               return await self.hardResetInvertedDTRWebUSB();
             },
@@ -1415,25 +1400,25 @@ export class ESPLoader extends EventTarget {
         }
       }
 
-      // Add general fallback strategies only for Native USB chips (not USB-Serial)
-      // and only for chips not already handled by specific blocks above
+      // 仅对原生 USB 芯片（而非 USB 串行）添加通用后备策略
+      // 并且仅针对上面特定块未处理的芯片
       if (
         !isUSBSerialChip &&
         !isCP2102 &&
         !isESP32S2NativeUSB &&
         !isUSBJTAGSerial
       ) {
-        // Classic reset (for chips not handled above)
+        // 经典复位（针对上面未处理的芯片）
         if (portInfo.usbVendorId !== 0x1a86) {
           resetStrategies.push({
-            name: "Classic (WebUSB)",
+            name: "经典 (WebUSB)",
             fn: async function () {
               return await self.hardResetClassic();
             },
           });
         }
 
-        // UnixTight reset (sets DTR/RTS simultaneously)
+        // UnixTight 复位（同时设置 DTR/RTS）
         resetStrategies.push({
           name: "UnixTight (WebUSB)",
           fn: async function () {
@@ -1441,26 +1426,26 @@ export class ESPLoader extends EventTarget {
           },
         });
 
-        // WebUSB Strategy: Classic with long delays
+        // WebUSB 策略：长延迟经典复位
         resetStrategies.push({
-          name: "Classic Long Delay (WebUSB)",
+          name: "长延迟经典 (WebUSB)",
           fn: async function () {
             return await self.hardResetClassicLongDelayWebUSB();
           },
         });
 
-        // WebUSB Strategy: Classic with short delays
+        // WebUSB 策略：短延迟经典复位
         resetStrategies.push({
-          name: "Classic Short Delay (WebUSB)",
+          name: "短延迟经典 (WebUSB)",
           fn: async function () {
             return await self.hardResetClassicShortDelayWebUSB();
           },
         });
 
-        // WebUSB Strategy: USB-JTAG/Serial fallback
+        // WebUSB 策略：USB-JTAG/串行后备
         if (!isEspressifUSB) {
           resetStrategies.push({
-            name: "USB-JTAG/Serial fallback (WebUSB)",
+            name: "USB-JTAG/串行后备 (WebUSB)",
             fn: async function () {
               return await self.hardResetUSBJTAGSerial();
             },
@@ -1468,17 +1453,17 @@ export class ESPLoader extends EventTarget {
         }
       }
     } else {
-      // Strategy: USB-JTAG/Serial reset
+      // 策略：USB-JTAG/串行复位
       if (isUSBJTAGSerial || isEspressifUSB) {
         resetStrategies.push({
-          name: "USB-JTAG/Serial",
+          name: "USB-JTAG/串行",
           fn: async function () {
             return await self.hardResetUSBJTAGSerial();
           },
         });
       }
 
-      // Strategy: UnixTight reset
+      // 策略：UnixTight 复位
       resetStrategies.push({
         name: "UnixTight",
         fn: async function () {
@@ -1486,10 +1471,10 @@ export class ESPLoader extends EventTarget {
         },
       });
 
-      // Strategy: USB-JTAG/Serial fallback
+      // 策略：USB-JTAG/串行后备
       if (!isUSBJTAGSerial && !isEspressifUSB) {
         resetStrategies.push({
-          name: "USB-JTAG/Serial (fallback)",
+          name: "USB-JTAG/串行（后备）",
           fn: async function () {
             return await self.hardResetUSBJTAGSerial();
           },
@@ -1499,111 +1484,105 @@ export class ESPLoader extends EventTarget {
 
     let lastError: Error | null = null;
 
-    // Try each reset strategy with timeout
+    // 尝试每个复位策略并设置超时
     for (const strategy of resetStrategies) {
       try {
-        // Check if port is still open, if not, skip this strategy
+        // 检查端口是否仍然打开，如果不是，跳过此策略
         if (!this.connected || !this.port.writable) {
-          this.logger.debug(
-            `Port disconnected, skipping ${strategy.name} reset`,
-          );
+          this.logger.debug(`端口已断开连接，跳过 ${strategy.name} 复位`);
           continue;
         }
 
-        // Clear abandon flag before starting new strategy
+        // 在开始新策略之前清除放弃标志
         this._abandonCurrentOperation = false;
 
         await strategy.fn();
 
-        // Try to sync after reset
-        // USB-Serial / native USB chips needs different sync approaches
+        // 复位后尝试同步
+        // USB 串行 / 原生 USB 芯片需要不同的同步方法
 
         if (isUSBSerialChip) {
-          // USB-Serial chips: Use timeout strategy (2 seconds)
-          //          this.logger.log(`USB-Serial chip detected, using sync with timeout.`);
+          // USB 串行芯片：使用超时策略（2 秒）
+          //          this.logger.log(`检测到 USB 串行芯片，使用带超时的同步。`);
           const syncSuccess = await this.syncWithTimeout(2000);
 
           if (syncSuccess) {
-            // Sync succeeded
-            this.logger.log(
-              `Connected USB Serial successfully with ${strategy.name} reset.`,
-            );
+            // 同步成功
+            this.logger.log(`使用 ${strategy.name} 复位成功连接 USB 串行。`);
             return;
           } else {
-            throw new Error("Sync timeout or abandoned");
+            throw new Error("同步超时或放弃");
           }
         } else {
-          // Native USB chips
-          // Note: We use Promise.race with sync() directly instead of syncWithTimeout()
-          // because syncWithTimeout causes CDC/JTAG devices to hang for unknown reasons.
-          // The abandon flag in readPacket() prevents overlapping I/O.
-          //          this.logger.log(`Native USB chip detected, using CDC/JTAG sync.`);
+          // 原生 USB 芯片
+          // 注意：我们使用 Promise.race 直接与 sync() 竞争，而不是 syncWithTimeout()
+          // 因为 syncWithTimeout 会导致 CDC/JTAG 设备由于未知原因挂起。
+          // readPacket() 中的放弃标志防止 I/O 重叠。
+          //          this.logger.log(`检测到原生 USB 芯片，使用 CDC/JTAG 同步。`);
           const syncPromise = this.sync();
           const timeoutPromise = new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error("Sync timeout")), 1000),
+            setTimeout(() => reject(new Error("同步超时")), 1000),
           );
 
           try {
             await Promise.race([syncPromise, timeoutPromise]);
-            // Sync succeeded
-            this.logger.debug(
-              `Connected CDC/JTAG successfully with ${strategy.name} reset.`,
-            );
+            // 同步成功
+            this.logger.debug(`使用 ${strategy.name} 复位成功连接 CDC/JTAG。`);
             return;
           } catch {
-            throw new Error("Sync timeout or abandoned");
+            throw new Error("同步超时或放弃");
           }
         }
       } catch (error) {
         lastError = error as Error;
         //        this.logger.debug(
-        //          `${strategy.name} reset failed: ${(error as Error).message}`,
+        //          `${strategy.name} 复位失败: ${(error as Error).message}`,
         //        );
 
-        // Set abandon flag to stop any in-flight operations
+        // 设置放弃标志以停止任何进行中的操作
         this._abandonCurrentOperation = true;
 
-        // Wait a bit for in-flight operations to abort
+        // 等待一段时间，让进行中的操作中止
         await sleep(100);
 
-        // If port got disconnected, we can't try more strategies
+        // 如果端口断开连接，我们无法尝试更多策略
         if (!this.connected || !this.port.writable) {
-          this.logger.log(`Port disconnected during reset attempt`);
+          this.logger.log(`在复位尝试期间端口断开连接`);
           break;
         }
 
-        // Clear buffers before trying next strategy
+        // 在尝试下一个策略之前清空缓冲区
         this._clearInputBuffer();
         await this.drainInputBuffer(200);
         await this.flushSerialBuffers();
       }
     }
 
-    // All strategies failed - reset abandon flag before throwing
+    // 所有策略都失败 - 在抛出之前重置放弃标志
     this._abandonCurrentOperation = false;
 
     throw new Error(
-      `Couldn't sync to ESP. Try resetting manually. Last error: ${lastError?.message}`,
+      `无法同步到 ESP。请尝试手动复位。最后一个错误: ${lastError?.message}`,
     );
   }
 
   /**
    * @name watchdogReset
-   * Watchdog reset for ESP32-S2/S3/C3 with USB-OTG or USB-JTAG/Serial
-   * Uses RTC watchdog timer to reset the chip - works when DTR/RTS signals are not available
-   * This is an alias for rtcWdtResetChipSpecific() for backwards compatibility
+   * 针对具有 USB-OTG 或 USB-JTAG/串行的 ESP32-S2/S3/C3 的看门狗复位
+   * 使用 RTC 看门狗定时器复位芯片 - 在 DTR/RTS 信号不可用时有效
+   * 这是为了向后兼容而对 rtcWdtResetChipSpecific() 的别名
    */
   async watchdogReset() {
     await this.rtcWdtResetChipSpecific();
   }
 
   /**
-   * RTC watchdog timer reset for ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C5, ESP32-C6, and ESP32-P4
-   * Uses specific registers for each chip family
-   * Note: ESP32-H2 does NOT support WDT reset
+   * 针对 ESP32-S2、ESP32-S3、ESP32-C3、ESP32-C5、ESP32-C6 和 ESP32-P4 的 RTC 看门狗定时器复位
+   * 使用每个芯片系列的特定寄存器
+   * 注意：ESP32-H2 不支持 WDT 复位
    */
   public async rtcWdtResetChipSpecific(): Promise<void> {
-    this.logger.debug("Hard resetting with watchdog timer...");
+    this.logger.debug("正在使用看门狗定时器硬复位...");
 
     let WDTWPROTECT_REG: number;
     let WDTCONFIG0_REG: number;
@@ -1629,60 +1608,60 @@ export class ESPLoader extends EventTarget {
       this.chipFamily === CHIP_FAMILY_ESP32C5 ||
       this.chipFamily === CHIP_FAMILY_ESP32C6
     ) {
-      // C5 and C6 use LP_WDT (Low Power Watchdog Timer)
+      // C5 和 C6 使用 LP_WDT（低功耗看门狗定时器）
       WDTWPROTECT_REG = ESP32C5_C6_RTC_CNTL_WDTWPROTECT_REG;
       WDTCONFIG0_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG0_REG;
       WDTCONFIG1_REG = ESP32C5_C6_RTC_CNTL_WDTCONFIG1_REG;
       WDT_WKEY = ESP32C5_C6_RTC_CNTL_WDT_WKEY;
     } else if (this.chipFamily === CHIP_FAMILY_ESP32P4) {
-      // P4 uses LP_WDT (Low Power Watchdog Timer)
+      // P4 使用 LP_WDT（低功耗看门狗定时器）
       WDTWPROTECT_REG = ESP32P4_RTC_CNTL_WDTWPROTECT_REG;
       WDTCONFIG0_REG = ESP32P4_RTC_CNTL_WDTCONFIG0_REG;
       WDTCONFIG1_REG = ESP32P4_RTC_CNTL_WDTCONFIG1_REG;
       WDT_WKEY = ESP32P4_RTC_CNTL_WDT_WKEY;
     } else {
       throw new Error(
-        `rtcWdtResetChipSpecific() is not supported for ${this.chipFamily}`,
+        `rtcWdtResetChipSpecific() 不受支持于 ${this.chipFamily}`,
       );
     }
 
-    // Unlock watchdog registers
+    // 解锁看门狗寄存器
     await this.writeRegister(WDTWPROTECT_REG, WDT_WKEY, undefined, 0);
 
-    // Set WDT timeout to 2000ms (matches Python esptool)
+    // 将 WDT 超时设置为 2000ms（匹配 Python esptool）
     await this.writeRegister(WDTCONFIG1_REG, 2000, undefined, 0);
 
-    // Enable WDT: bit 31 = enable, bits 28-30 = stage, bit 8 = sys reset, bits 0-2 = prescaler
+    // 启用 WDT：位 31 = 启用，位 28-30 = 阶段，位 8 = 系统复位，位 0-2 = 预分频器
     const wdtConfig = (1 << 31) | (5 << 28) | (1 << 8) | 2;
     await this.writeRegister(WDTCONFIG0_REG, wdtConfig, undefined, 0);
 
-    // Lock watchdog registers
+    // 锁定看门狗寄存器
     await this.writeRegister(WDTWPROTECT_REG, 0, undefined, 0);
 
-    // Wait for reset to take effect
+    // 等待复位生效
     await sleep(500);
   }
 
   /**
-   * Reset device from bootloader mode to firmware mode
-   * Automatically selects the correct reset strategy based on USB connection type
-   * @param clearForceDownloadFlag - If true, clears the force download boot flag (USB-OTG only)
-   * @returns true if port will change (USB-OTG), false otherwise
+   * 将设备从引导加载程序模式复位到固件模式
+   * 根据 USB 连接类型自动选择正确的复位策略
+   * @param clearForceDownloadFlag - 如果为 true，则清除强制下载启动标志（仅限 USB-OTG）
+   * @returns 如果端口将更改（USB-OTG）则返回 true，否则返回 false
    */
   public async resetToFirmwareMode(
     clearForceDownloadFlag = true,
   ): Promise<boolean> {
-    this.logger.debug("Resetting from bootloader to firmware mode...");
+    this.logger.debug("正在从引导加载程序复位到固件模式...");
 
     try {
-      // Detect USB connection type
+      // 检测 USB 连接类型
       const isUsbJtagOrOtg = await this.detectUsbConnectionType();
 
       if (isUsbJtagOrOtg) {
-        // USB-JTAG/OTG devices need special handling
-        this.logger.debug("USB-JTAG/OTG detected - checking WDT reset support");
+        // USB-JTAG/OTG 设备需要特殊处理
+        this.logger.debug("检测到 USB-JTAG/OTG - 检查 WDT 复位支持");
 
-        // Get detailed USB mode information
+        // 获取详细的 USB 模式信息
         let usbMode: {
           mode: "uart" | "usb-jtag-serial" | "usb-otg";
           uartNo: number;
@@ -1690,162 +1669,154 @@ export class ESPLoader extends EventTarget {
         try {
           usbMode = await this.getUsbMode();
           this.logger.debug(
-            `USB mode: ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
+            `USB 模式: ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
           );
         } catch (err) {
-          this.logger.debug(`Could not get USB mode: ${err}`);
-          // Fall back to generic USB-JTAG/OTG handling
+          this.logger.debug(`无法获取 USB 模式: ${err}`);
+          // 回退到通用的 USB-JTAG/OTG 处理
           usbMode = { mode: "usb-jtag-serial", uartNo: 0 };
         }
 
-        // Check if chip supports WDT reset
-        // WDT reset is not needed for ESP32-C3
-        // WDT reset is supported by: ESP32-S2, ESP32-S3, ESP32-P4
-        // WDT reset is NOT supported by: ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2
+        // 检查芯片是否支持 WDT 复位
+        // ESP32-C3 不需要 WDT 复位
+        // WDT 复位受支持于：ESP32-S2、ESP32-S3、ESP32-P4
+        // WDT 复位不受支持于：ESP32-C5、ESP32-C6、ESP32-C61、ESP32-H2
         const supportsWdtReset =
           this.chipFamily === CHIP_FAMILY_ESP32S2 ||
           this.chipFamily === CHIP_FAMILY_ESP32S3 ||
           this.chipFamily === CHIP_FAMILY_ESP32P4;
 
         if (!supportsWdtReset) {
-          this.logger.debug(
-            `${this.chipName} does not support WDT reset - using classic reset instead`,
-          );
+          this.logger.debug(`${this.chipName} 不支持 WDT 复位 - 改用经典复位`);
 
-          // Use classic reset for chips without WDT support
+          // 对于不支持 WDT 的芯片，使用经典复位
           await this.hardResetToFirmware();
-          this.logger.debug("Classic reset to firmware complete");
-          return false; // Port stays open
+          this.logger.debug("经典复位到固件完成");
+          return false; // 端口保持打开
         }
 
-        // WDT reset is supported - proceed with WDT reset logic
-        this.logger.debug(
-          `${this.chipName} supports WDT reset - using WDT reset strategy`,
-        );
+        // WDT 复位受支持 - 继续使用 WDT 复位逻辑
+        this.logger.debug(`${this.chipName} 支持 WDT 复位 - 使用 WDT 复位策略`);
 
-        // CRITICAL: WDT register writes require ROM (not stub) and baudrate 115200
+        // 关键：WDT 寄存器写入需要 ROM（而非 stub）和波特率 115200
 
-        // If on stub, need to return to ROM first
+        // 如果在 stub 上，需要先返回 ROM
         if (this.IS_STUB) {
-          this.logger.debug("On stub - returning to ROM before WDT reset");
+          this.logger.debug("在 stub 上 - 在 WDT 复位前返回 ROM");
 
-          // Change baudrate back to ROM baudrate if needed
+          // 如果需要，将波特率改回 ROM 波特率
           if (this.currentBaudRate !== ESP_ROM_BAUD) {
             this.logger.debug(
-              `Changing baudrate from ${this.currentBaudRate} to ${ESP_ROM_BAUD}`,
+              `将波特率从 ${this.currentBaudRate} 更改为 ${ESP_ROM_BAUD}`,
             );
             await this.reconfigurePort(ESP_ROM_BAUD);
             this.currentBaudRate = ESP_ROM_BAUD;
-            this.logger.debug("Baudrate changed to 115200");
+            this.logger.debug("波特率已更改为 115200");
           }
 
-          // CRITICAL: Temporarily clear console mode flag so hardReset(true) works
+          // 关键：临时清除控制台模式标志，以便 hardReset(true) 正常工作
           const wasInConsoleMode = this._consoleMode;
           this._consoleMode = false;
 
-          // Reset to bootloader (ROM)
+          // 复位到引导加载程序（ROM）
           await this.hardReset(true);
           await sleep(200);
 
-          // Restore console mode flag
+          // 恢复控制台模式标志
           this._consoleMode = wasInConsoleMode;
 
-          // Sync with ROM
+          // 与 ROM 同步
           await this.sync();
           this.IS_STUB = false;
-          this.logger.debug("Now on ROM");
+          this.logger.debug("现在处于 ROM");
         } else {
-          // Even if not on stub, ensure baudrate is 115200 for WDT register writes
+          // 即使不在 stub 上，也要确保 WDT 寄存器写入的波特率为 115200
           if (this.currentBaudRate !== ESP_ROM_BAUD) {
             this.logger.debug(
-              `Not on stub, but baudrate is ${this.currentBaudRate} - changing to ${ESP_ROM_BAUD} for WDT reset`,
+              `不在 stub 上，但波特率为 ${this.currentBaudRate} - 为 WDT 复位更改为 ${ESP_ROM_BAUD}`,
             );
             await this.reconfigurePort(ESP_ROM_BAUD);
             this.currentBaudRate = ESP_ROM_BAUD;
-            this.logger.debug("Baudrate changed to 115200");
+            this.logger.debug("波特率已更改为 115200");
           }
         }
 
-        // Clear force download boot flag if requested (USB-OTG only)
+        // 如果需要，清除强制下载启动标志（仅限 USB-OTG）
         if (clearForceDownloadFlag && usbMode.mode === "usb-otg") {
           const flagCleared = await this._clearForceDownloadBootIfNeeded();
           if (flagCleared) {
-            this.logger.debug("Force download boot flag cleared");
+            this.logger.debug("强制下载启动标志已清除");
           }
         }
 
-        // Perform WDT reset to boot into firmware
+        // 执行 WDT 复位以启动到固件
         await this.rtcWdtResetChipSpecific();
-        this.logger.debug("WDT reset performed - device will boot to firmware");
+        this.logger.debug("已触发 WDT 复位 - 设备将启动到固件");
 
-        // Check if port will change after WDT reset
-        // USB-OTG (ESP32-S2/P4): Port always changes
-        // USB-JTAG/Serial (ESP32-S3/C3/C5/C6/C61/H2/P4): Port may change depending on platform
+        // 检查 WDT 复位后端口是否会更改
+        // USB-OTG（ESP32-S2/P4）：端口始终更改
+        // USB-JTAG/串行（ESP32-S3/C3/C5/C6/C61/H2/P4）：端口可能因平台而异
         const portWillChange =
           usbMode.mode === "usb-otg" || usbMode.mode === "usb-jtag-serial";
 
         if (portWillChange) {
           this.logger.debug(
-            `Port will change after WDT reset (${usbMode.mode}) - port reselection needed`,
+            `WDT 复位后端口将更改 (${usbMode.mode}) - 需要端口重新选择`,
           );
           return true;
         }
 
         return false;
       } else {
-        // External serial chip - use classic reset to firmware
-        this.logger.debug(
-          "External serial chip detected - using classic reset",
-        );
+        // 外部串行芯片 - 使用经典复位到固件
+        this.logger.debug("检测到外部串行芯片 - 使用经典复位");
 
         await this.hardResetToFirmware();
-        this.logger.debug("Classic reset to firmware complete");
+        this.logger.debug("经典复位到固件完成");
         return false;
       }
     } catch (err) {
-      this.logger.error(`Failed to reset to firmware mode: ${err}`);
+      this.logger.error(`复位到固件模式失败: ${err}`);
       throw err;
     }
   }
 
   async hardReset(bootloader = false) {
-    // In console mode, only allow simple hardware reset (no bootloader entry)
+    // 在控制台模式下，仅允许简单的硬件复位（不进入引导加载程序）
     if (this._consoleMode) {
       if (bootloader) {
-        this.logger.debug(
-          "Skipping bootloader reset - device is in console mode",
-        );
+        this.logger.debug("跳过引导加载程序复位 - 设备处于控制台模式");
         return;
       }
-      // Simple hardware reset to restart firmware (IO0=HIGH)
-      this.logger.debug("Performing hardware reset (console mode)...");
+      // 简单的硬件复位以重启固件（IO0=HIGH）
+      this.logger.debug("正在执行硬件复位（控制台模式）...");
       await this.resetInConsoleMode();
-      this.logger.debug("Hardware reset complete");
+      this.logger.debug("硬件复位完成");
       return;
     }
 
     if (bootloader) {
-      // Enter bootloader/flash mode
+      // 进入引导加载程序/闪存模式
       if (this.port.getInfo().usbProductId === USB_JTAG_SERIAL_PID) {
         await this.hardResetUSBJTAGSerial();
-        this.logger.debug("USB-JTAG/Serial reset to bootloader.");
+        this.logger.debug("USB-JTAG/串行复位到引导加载程序。");
       } else {
         await this.hardResetClassic();
-        this.logger.debug("Classic reset to bootloader.");
+        this.logger.debug("经典复位到引导加载程序。");
       }
     } else {
-      // Reset to firmware mode (exit bootloader)
-      // Use intelligent reset strategy based on USB connection type
-      this.logger.debug("Resetting to firmware mode...");
+      // 复位到固件模式（退出引导加载程序）
+      // 根据 USB 连接类型使用智能复位策略
+      this.logger.debug("正在复位到固件模式...");
 
-      // Detect USB connection type to choose correct reset method
+      // 检测 USB 连接类型以选择正确的复位方法
       const isUsbJtagOrOtg = await this.detectUsbConnectionType();
 
       if (isUsbJtagOrOtg) {
-        // USB-JTAG/OTG devices: Use WDT reset
-        this.logger.debug("USB-JTAG/OTG detected - using WDT reset");
+        // USB-JTAG/OTG 设备：使用 WDT 复位
+        this.logger.debug("检测到 USB-JTAG/OTG - 使用 WDT 复位");
 
-        // Get USB mode details
+        // 获取 USB 模式详细信息
         let usbMode: {
           mode: "uart" | "usb-jtag-serial" | "usb-otg";
           uartNo: number;
@@ -1853,48 +1824,46 @@ export class ESPLoader extends EventTarget {
         try {
           usbMode = await this.getUsbMode();
           this.logger.debug(
-            `USB mode: ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
+            `USB 模式: ${usbMode.mode} (uartNo=${usbMode.uartNo})`,
           );
         } catch (err) {
-          this.logger.debug(`Could not get USB mode: ${err}`);
+          this.logger.debug(`无法获取 USB 模式: ${err}`);
           usbMode = { mode: "usb-jtag-serial", uartNo: 0 };
         }
 
-        // Clear force download flag for USB-OTG devices
+        // 为 USB-OTG 设备清除强制下载标志
         if (usbMode.mode === "usb-otg") {
           try {
             const flagCleared = await this._clearForceDownloadBootIfNeeded();
             if (flagCleared) {
-              this.logger.debug("Force download boot flag cleared");
+              this.logger.debug("强制下载启动标志已清除");
             }
           } catch (err) {
-            this.logger.debug(`Could not clear force download flag: ${err}`);
+            this.logger.debug(`无法清除强制下载标志: ${err}`);
           }
         }
 
-        // Perform WDT reset
+        // 执行 WDT 复位
         await this.rtcWdtResetChipSpecific();
-        this.logger.debug(`${this.chipName}: WDT reset to firmware complete`);
+        this.logger.debug(`${this.chipName}: WDT 复位到固件完成`);
         return;
       } else {
-        // External serial chip: Use classic reset
-        this.logger.debug(
-          "External serial chip detected - using classic reset",
-        );
+        // 外部串行芯片：使用经典复位
+        this.logger.debug("检测到外部串行芯片 - 使用经典复位");
 
         if (this.isWebUSB()) {
-          // WebUSB: Use longer delays for better compatibility
+          // WebUSB：使用更长的延迟以获得更好的兼容性
           await this.setRTSWebUSB(true); // EN->LOW
           await sleep(200);
           await this.setRTSWebUSB(false);
           await sleep(200);
-          this.logger.debug("Hard reset to firmware (WebUSB).");
+          this.logger.debug("硬复位到固件（WebUSB）。");
         } else {
-          // Web Serial: Standard reset
+          // Web 串行：标准复位
           await this.setRTS(true); // EN->LOW
           await sleep(100);
           await this.setRTS(false);
-          this.logger.debug("Hard reset to firmware.");
+          this.logger.debug("硬复位到固件。");
         }
       }
     }
@@ -1903,7 +1872,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name macAddr
-   * The MAC address burned into the OTP memory of the ESP chip
+   * 烧录到 ESP 芯片 OTP 存储器中的 MAC 地址
    */
   macAddr() {
     const macAddr = new Array(6).fill(0);
@@ -1920,7 +1889,7 @@ export class ESPLoader extends EventTarget {
       } else if (((mac1 >> 16) & 0xff) == 1) {
         oui = [0xac, 0xd0, 0x74];
       } else {
-        throw new Error("Couldnt determine OUI");
+        throw new Error("无法确定 OUI");
       }
 
       macAddr[0] = oui[0];
@@ -1957,14 +1926,14 @@ export class ESPLoader extends EventTarget {
       macAddr[4] = (mac0 >> 8) & 0xff;
       macAddr[5] = mac0 & 0xff;
     } else {
-      throw new Error("Unknown chip family");
+      throw new Error("未知的芯片系列");
     }
     return macAddr;
   }
 
   async readRegister(reg: number) {
     if (this.debug) {
-      this.logger.debug("Reading from Register " + toHex(reg, 8));
+      this.logger.debug("从寄存器读取 " + toHex(reg, 8));
     }
     const packet = pack("<I", reg);
     await this.sendCommand(ESP_READ_REG, packet);
@@ -1974,12 +1943,10 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name checkCommand
-   * Send a command packet, check that the command succeeded and
-   * return a tuple with the value and data.
-   * See the ESP Serial Protocol for more details on what value/data are
+   * 发送命令包，检查命令是否成功，并返回包含值和数据的元组。
+   * 有关值/数据的更多详细信息，请参阅 ESP 串行协议。
    *
-   * Commands are serialized to prevent concurrent execution which can cause
-   * WritableStream lock contention on CP210x adapters under Windows
+   * 命令被序列化以防止并发执行，这可能导致在 Windows 下的 CP210x 适配器上发生 WritableStream 锁定争用。
    */
   async checkCommand(
     opcode: number,
@@ -1987,14 +1954,14 @@ export class ESPLoader extends EventTarget {
     checksum = 0,
     timeout = DEFAULT_TIMEOUT,
   ): Promise<[number, number[]]> {
-    // Serialize command execution to prevent lock contention
+    // 序列化命令执行以防止锁定争用
     const executeCommand = async (): Promise<[number, number[]]> => {
       timeout = Math.min(timeout, MAX_TIMEOUT);
       await this.sendCommand(opcode, buffer, checksum);
       const [value, responseData] = await this.getResponse(opcode, timeout);
 
       if (responseData === null) {
-        throw new Error("Didn't get enough status bytes");
+        throw new Error("未获取到足够的状态字节");
       }
 
       let data = responseData;
@@ -2021,56 +1988,55 @@ export class ESPLoader extends EventTarget {
       ) {
         statusLen = 4;
       } else {
-        // When chipFamily is not yet set (e.g., during GET_SECURITY_INFO in detectChip),
-        // assume modern chips use 4-byte status
+        // 当 chipFamily 尚未设置时（例如在 detectChip 中的 GET_SECURITY_INFO 期间），
+        // 假设现代芯片使用 4 字节状态
         if (opcode === ESP_GET_SECURITY_INFO) {
           statusLen = 4;
         } else if ([2, 4].includes(data.length)) {
           statusLen = data.length;
         } else {
-          // Default to 2-byte status if we can't determine
-          // This prevents silent data corruption when statusLen would be 0
+          // 如果无法确定，默认为 2 字节状态
+          // 这可以防止当 statusLen 将为 0 时发生静默数据损坏
           statusLen = 2;
           this.logger.debug(
-            `Unknown chip family, defaulting to 2-byte status (opcode: ${toHex(opcode)}, data.length: ${data.length})`,
+            `未知的芯片系列，默认使用 2 字节状态 (opcode: ${toHex(opcode)}, data.length: ${data.length})`,
           );
         }
       }
 
       if (data.length < statusLen) {
-        throw new Error("Didn't get enough status bytes");
+        throw new Error("未获取到足够的状态字节");
       }
       const status = data.slice(-statusLen, data.length);
       data = data.slice(0, -statusLen);
       if (this.debug) {
-        this.logger.debug("status", status);
-        this.logger.debug("value", value);
-        this.logger.debug("data", data);
+        this.logger.debug("状态", status);
+        this.logger.debug("值", value);
+        this.logger.debug("数据", data);
       }
       if (status[0] == 1) {
         if (status[1] == ROM_INVALID_RECV_MSG) {
-          // Unsupported command can result in more than one error response
-          // Use drainInputBuffer for CP210x compatibility on Windows
+          // 不受支持的命令可能导致多个错误响应
+          // 使用 drainInputBuffer 以确保 Windows 上的 CP210x 兼容性
           await this.drainInputBuffer(200);
-          throw new Error("Invalid (unsupported) command " + toHex(opcode));
+          throw new Error("无效（不受支持）的命令 " + toHex(opcode));
         } else {
-          throw new Error("Command failure error code " + toHex(status[1]));
+          throw new Error("命令失败错误代码 " + toHex(status[1]));
         }
       }
 
       return [value, data];
     };
 
-    // Chain command execution through the lock
-    // Use both .then() handlers to ensure lock continues even on error
+    // 通过锁链式执行命令
+    // 使用 .then() 处理程序以确保即使在错误时锁也能继续
     this._commandLock = this._commandLock.then(executeCommand, executeCommand);
     return this._commandLock;
   }
 
   /**
    * @name sendCommand
-   * Send a slip-encoded, checksummed command over the UART,
-   * does not check response
+   * 在 UART 上发送经过 slip 编码、带校验和的命令，不检查响应
    */
   async sendCommand(opcode: number, buffer: number[], checksum = 0) {
     const packet = slipEncode([
@@ -2079,83 +2045,73 @@ export class ESPLoader extends EventTarget {
     ]);
 
     if (this.debug) {
-      this.logger.debug(
-        `Writing ${packet.length} byte${packet.length == 1 ? "" : "s"}:`,
-        packet,
-      );
+      this.logger.debug(`写入 ${packet.length} 字节:`, packet);
     }
     await this.writeToStream(packet);
   }
 
   /**
    * @name readPacket
-   * Generator to read SLIP packets from a serial port.
-   * Yields one full SLIP packet at a time, raises exception on timeout or invalid data.
+   * 从串口读取 SLIP 包的生成器。
+   * 每次生成一个完整的 SLIP 包，在超时或无效数据时引发异常。
    *
-   * Two implementations:
-   * - Burst: CDC devices (Native USB) and CH343 - very fast processing
-   * - Byte-by-byte: CH340, CP2102, and other USB-Serial adapters - stable fast processing
+   * 两种实现：
+   * - 突发模式：CDC 设备（原生 USB）和 CH343 - 极速处理
+   * - 逐字节模式：CH340、CP2102 和其他 USB 串行适配器 - 稳定快速处理
    */
   async readPacket(timeout: number): Promise<number[]> {
     let partialPacket: number[] | null = null;
     let inEscape = false;
 
-    // CDC devices use burst processing, non-CDC use byte-by-byte
+    // CDC 设备使用突发处理，非 CDC 使用逐字节处理
     if (this._isCDCDevice) {
-      // Burst version: Process all available bytes in one pass for ultra-high-speed transfers
-      // Used for: CDC devices (all platforms) and CH343
+      // 突发版本：一次处理所有可用字节，用于超高速传输
+      // 用于：CDC 设备（所有平台）和 CH343
       const startTime = Date.now();
 
       while (true) {
-        // Check abandon flag (for reset strategy timeout)
+        // 检查放弃标志（用于复位策略超时）
         if (this._abandonCurrentOperation) {
-          throw new SlipReadError(
-            "Operation abandoned (reset strategy timeout)",
-          );
+          throw new SlipReadError("操作已放弃（复位策略超时）");
         }
 
-        // Check timeout
+        // 检查超时
         if (Date.now() - startTime > timeout) {
-          const waitingFor = partialPacket === null ? "header" : "content";
-          throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+          const waitingFor = partialPacket === null ? "包头" : "内容";
+          throw new SlipReadError("等待包超时 " + waitingFor);
         }
 
-        // If no data available, wait a bit
+        // 如果没有数据可用，等待片刻
         if (this._inputBufferAvailable === 0) {
           await sleep(1);
           continue;
         }
 
-        // Process all available bytes without going back to outer loop
-        // This is critical for handling high-speed burst transfers
+        // 处理所有可用字节，不返回外部循环
+        // 这对于处理高速突发传输至关重要
         while (this._inputBufferAvailable > 0) {
-          // Periodic timeout check to prevent hang on slow data
+          // 定期检查超时以防止慢速数据时挂起
           if (Date.now() - startTime > timeout) {
-            const waitingFor = partialPacket === null ? "header" : "content";
-            throw new SlipReadError(
-              "Timed out waiting for packet " + waitingFor,
-            );
+            const waitingFor = partialPacket === null ? "包头" : "内容";
+            throw new SlipReadError("等待包超时 " + waitingFor);
           }
           const byte = this._readByte()!;
 
           if (partialPacket === null) {
-            // waiting for packet header
+            // 等待包头
             if (byte == this.SLIP_END) {
               partialPacket = [];
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
+                this.logger.debug("读取到无效数据: " + toHex(byte));
                 this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
+                  "串行缓冲区中剩余数据: " + hexFormatter(this._inputBuffer),
                 );
               }
-              throw new SlipReadError(
-                "Invalid head of packet (" + toHex(byte) + ")",
-              );
+              throw new SlipReadError("无效的包首字节 (" + toHex(byte) + ")");
             }
           } else if (inEscape) {
-            // part-way through escape sequence
+            // 转义序列进行中
             inEscape = false;
             if (byte == this.SLIP_ESC_END) {
               partialPacket.push(this.SLIP_END);
@@ -2163,43 +2119,38 @@ export class ESPLoader extends EventTarget {
               partialPacket.push(this.SLIP_ESC);
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
+                this.logger.debug("读取到无效数据: " + toHex(byte));
                 this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
+                  "串行缓冲区中剩余数据: " + hexFormatter(this._inputBuffer),
                 );
               }
               throw new SlipReadError(
-                "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
+                "无效的 SLIP 转义 (0xdb, " + toHex(byte) + ")",
               );
             }
           } else if (byte == this.SLIP_ESC) {
-            // start of escape sequence
+            // 转义序列开始
             inEscape = true;
           } else if (byte == this.SLIP_END) {
-            // end of packet
+            // 包结束
             if (this.debug)
-              this.logger.debug(
-                "Received full packet: " + hexFormatter(partialPacket),
-              );
-            // Compact buffer periodically to prevent memory growth
+              this.logger.debug("收到完整包: " + hexFormatter(partialPacket));
+            // 定期压缩缓冲区以防止内存增长
             this._compactInputBuffer();
             return partialPacket;
           } else {
-            // normal byte in packet
+            // 包中的正常字节
             partialPacket.push(byte);
           }
         }
       }
     } else {
-      // Byte-by-byte version: Stable for non CDC USB-Serial adapters (CH340, CP2102, etc.)
+      // 逐字节版本：对于非 CDC USB 串行适配器（CH340、CP2102 等）稳定
       let readBytes: number[] = [];
       while (true) {
-        // Check abandon flag (for reset strategy timeout)
+        // 检查放弃标志（用于复位策略超时）
         if (this._abandonCurrentOperation) {
-          throw new SlipReadError(
-            "Operation abandoned (reset strategy timeout)",
-          );
+          throw new SlipReadError("操作已放弃（复位策略超时）");
         }
 
         const stamp = Date.now();
@@ -2209,37 +2160,34 @@ export class ESPLoader extends EventTarget {
             readBytes.push(this._readByte()!);
             break;
           } else {
-            // Reduced sleep time for faster response during high-speed transfers
+            // 减少休眠时间，以便在高速传输期间更快响应
             await sleep(1);
           }
         }
         if (readBytes.length == 0) {
-          const waitingFor = partialPacket === null ? "header" : "content";
-          throw new SlipReadError("Timed out waiting for packet " + waitingFor);
+          const waitingFor = partialPacket === null ? "包头" : "内容";
+          throw new SlipReadError("等待包超时 " + waitingFor);
         }
         if (this.debug)
           this.logger.debug(
-            "Read " + readBytes.length + " bytes: " + hexFormatter(readBytes),
+            "读取 " + readBytes.length + " 字节: " + hexFormatter(readBytes),
           );
         for (const byte of readBytes) {
           if (partialPacket === null) {
-            // waiting for packet header
+            // 等待包头
             if (byte == this.SLIP_END) {
               partialPacket = [];
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
+                this.logger.debug("读取到无效数据: " + toHex(byte));
                 this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
+                  "串行缓冲区中剩余数据: " + hexFormatter(this._inputBuffer),
                 );
               }
-              throw new SlipReadError(
-                "Invalid head of packet (" + toHex(byte) + ")",
-              );
+              throw new SlipReadError("无效的包首字节 (" + toHex(byte) + ")");
             }
           } else if (inEscape) {
-            // part-way through escape sequence
+            // 转义序列进行中
             inEscape = false;
             if (byte == this.SLIP_ESC_END) {
               partialPacket.push(this.SLIP_END);
@@ -2247,30 +2195,27 @@ export class ESPLoader extends EventTarget {
               partialPacket.push(this.SLIP_ESC);
             } else {
               if (this.debug) {
-                this.logger.debug("Read invalid data: " + toHex(byte));
+                this.logger.debug("读取到无效数据: " + toHex(byte));
                 this.logger.debug(
-                  "Remaining data in serial buffer: " +
-                    hexFormatter(this._inputBuffer),
+                  "串行缓冲区中剩余数据: " + hexFormatter(this._inputBuffer),
                 );
               }
               throw new SlipReadError(
-                "Invalid SLIP escape (0xdb, " + toHex(byte) + ")",
+                "无效的 SLIP 转义 (0xdb, " + toHex(byte) + ")",
               );
             }
           } else if (byte == this.SLIP_ESC) {
-            // start of escape sequence
+            // 转义序列开始
             inEscape = true;
           } else if (byte == this.SLIP_END) {
-            // end of packet
+            // 包结束
             if (this.debug)
-              this.logger.debug(
-                "Received full packet: " + hexFormatter(partialPacket),
-              );
-            // Compact buffer periodically to prevent memory growth
+              this.logger.debug("收到完整包: " + hexFormatter(partialPacket));
+            // 定期压缩缓冲区以防止内存增长
             this._compactInputBuffer();
             return partialPacket;
           } else {
-            // normal byte in packet
+            // 包中的正常字节
             partialPacket.push(byte);
           }
         }
@@ -2280,9 +2225,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name getResponse
-   * Read response data and decodes the slip packet, then parses
-   * out the value/data and returns as a tuple of (value, data) where
-   * each is a list of bytes
+   * 读取响应数据并解码 slip 包，然后解析出值/数据，并返回元组 (value, data)，其中每个都是字节列表
    */
   async getResponse(
     opcode: number,
@@ -2305,18 +2248,18 @@ export class ESPLoader extends EventTarget {
         return [val, data];
       }
       if (data[0] != 0 && data[1] == ROM_INVALID_RECV_MSG) {
-        // Unsupported command can result in more than one error response
-        // Use drainInputBuffer for CP210x compatibility on Windows
+        // 不受支持的命令可能导致多个错误响应
+        // 使用 drainInputBuffer 以确保 Windows 上的 CP210x 兼容性
         await this.drainInputBuffer(200);
-        throw new Error(`Invalid (unsupported) command ${toHex(opcode)}`);
+        throw new Error(`无效（不受支持）的命令 ${toHex(opcode)}`);
       }
     }
-    throw new Error("Response doesn't match request");
+    throw new Error("响应与请求不匹配");
   }
 
   /**
    * @name checksum
-   * Calculate checksum of a blob, as it is defined by the ROM
+   * 计算数据块的校验和，如 ROM 所定义
    */
   checksum(data: number[], state = ESP_CHECKSUM_MAGIC) {
     for (const b of data) {
@@ -2352,10 +2295,8 @@ export class ESPLoader extends EventTarget {
         const buffer = pack("<II", baud, this.IS_STUB ? ESP_ROM_BAUD : 0);
         await this.checkCommand(ESP_CHANGE_BAUDRATE, buffer);
       } catch (e) {
-        this.logger.error(`Baudrate change error: ${e}`);
-        throw new Error(
-          `Unable to change the baud rate to ${baud}: No response from set baud rate command.`,
-        );
+        this.logger.error(`波特率更改错误: ${e}`);
+        throw new Error(`无法将波特率更改为 ${baud}：设置波特率命令无响应。`);
       }
     }
 
@@ -2365,37 +2306,35 @@ export class ESPLoader extends EventTarget {
       await this.reconfigurePort(baud);
     }
 
-    // Wait for port to be ready after baudrate change
+    // 波特率更改后等待端口准备就绪
     await sleep(SYNC_TIMEOUT);
 
-    // Track current baudrate for reconnect
+    // 为重新连接跟踪当前波特率
     if (this._parent) {
       this._parent.currentBaudRate = baud;
     } else {
       this.currentBaudRate = baud;
     }
 
-    // Warn if baudrate exceeds USB-Serial chip capability
+    // 如果波特率超过 USB 串行芯片的能力，发出警告
     const maxBaud = this._parent
       ? this._parent._maxUSBSerialBaudrate
       : this._maxUSBSerialBaudrate;
     if (maxBaud && baud > maxBaud) {
       this.logger.log(
-        `⚠️  WARNING: Baudrate ${baud} exceeds USB-Serial chip limit (${maxBaud})!`,
+        `⚠️ 警告：波特率 ${baud} 超过 USB 串行芯片的限制 (${maxBaud})！`,
       );
-      this.logger.log(
-        `⚠️  This may cause data corruption or connection failures!`,
-      );
+      this.logger.log(`⚠️ 这可能导致数据损坏或连接失败！`);
     }
 
-    this.logger.debug(`Changed baud rate to ${baud}`);
+    this.logger.debug(`波特率已更改为 ${baud}`);
   }
 
   private async setBaudrateC5Rom(baud: number) {
     const crystalFreqRomExpect = await this.getC5CrystalFreqRomExpect();
     const crystalFreqDetect = await this.getC5CrystalFreqDetected();
     this.logger.log(
-      `ROM expects crystal freq: ${crystalFreqRomExpect} MHz, detected ${crystalFreqDetect} MHz.`,
+      `ROM 期望的晶振频率: ${crystalFreqRomExpect} MHz，检测到 ${crystalFreqDetect} MHz。`,
     );
 
     let baudRate = baud;
@@ -2405,109 +2344,106 @@ export class ESPLoader extends EventTarget {
       baudRate = Math.trunc((baud * 48) / 40);
     }
 
-    this.logger.log(`Changing baud rate to ${baudRate}...`);
+    this.logger.log(`正在将波特率更改为 ${baudRate}...`);
     try {
       const buffer = pack("<II", baudRate, 0);
       await this.checkCommand(ESP_CHANGE_BAUDRATE, buffer);
     } catch (e) {
-      this.logger.error(`Baudrate change error: ${e}`);
-      throw new Error(
-        `Unable to change the baud rate to ${baudRate}: No response from set baud rate command.`,
-      );
+      this.logger.error(`波特率更改错误: ${e}`);
+      throw new Error(`无法将波特率更改为 ${baudRate}：设置波特率命令无响应。`);
     }
-    this.logger.log("Changed.");
+    this.logger.log("已更改。");
   }
 
   async reconfigurePort(baud: number) {
-    // Block new writes during the entire reconfiguration (all paths)
+    // 在整个重新配置期间阻止新写入（所有路径）
     this._isReconfiguring = true;
 
     try {
-      // Wait for pending writes to complete
+      // 等待待处理的写入完成
       try {
         await this._writeChain;
       } catch (err) {
-        this.logger.debug(`Pending write error during reconfigure: ${err}`);
+        this.logger.debug(`重新配置期间待处理写入错误: ${err}`);
       }
 
-      // WebUSB: Check if we should use setBaudRate() or close/reopen
+      // WebUSB：检查是否应该使用 setBaudRate() 还是关闭/重新打开
       if (this.isWebUSB()) {
         const portInfo = this.port.getInfo();
         const isCH343 =
           portInfo.usbVendorId === 0x1a86 && portInfo.usbProductId === 0x55d3;
 
-        // CH343 is a CDC device and MUST use close/reopen
-        // Other chips (CH340, CP2102, FTDI) MUST use setBaudRate()
+        // CH343 是 CDC 设备，必须使用关闭/重新打开
+        // 其他芯片（CH340、CP2102、FTDI）必须使用 setBaudRate()
         if (
           !isCH343 &&
           typeof (this.port as WebUSBSerialPort).setBaudRate === "function"
         ) {
           //          this.logger.log(
-          //            `[WebUSB] Changing baudrate to ${baud} using setBaudRate()...`,
+          //            `[WebUSB] 使用 setBaudRate() 将波特率更改为 ${baud}...`,
           //          );
           await (this.port as WebUSBSerialPort).setBaudRate(baud);
-          //          this.logger.log(`[WebUSB] Baudrate changed to ${baud}`);
+          //          this.logger.log(`[WebUSB] 波特率已更改为 ${baud}`);
 
-          // Give the chip time to adjust to new baudrate
+          // 给芯片一些时间适应新波特率
           await sleep(100);
           return;
         } else if (isCH343) {
           //          this.logger.log(
-          //            `[WebUSB] CH343 detected - using close/reopen for baudrate change`,
+          //            `[WebUSB] 检测到 CH343 - 使用关闭/重新打开进行波特率更改`,
           //          );
         }
       }
 
-      // Web Serial or CH343: Close and reopen port
-      // Release persistent writer before closing
+      // Web 串行或 CH343：关闭并重新打开端口
+      // 在关闭前释放持久写入器
       if (this._writer) {
         try {
           this._writer.releaseLock();
         } catch (err) {
-          this.logger.debug(`Writer release error during reconfigure: ${err}`);
+          this.logger.debug(`重新配置期间写入器释放错误: ${err}`);
         }
         this._writer = undefined;
       }
 
-      // SerialPort does not allow to be reconfigured while open so we close and re-open
-      // reader.cancel() causes the Promise returned by the read() operation running on
-      // the readLoop to return immediately with { value: undefined, done: true } and thus
-      // breaking the loop and exiting readLoop();
+      // SerialPort 在打开时不允许重新配置，因此我们关闭并重新打开
+      // reader.cancel() 会导致在 readLoop 上运行的读取操作返回的 Promise 立即返回 { value: undefined, done: true }，
+      // 从而中断循环并退出 readLoop()；
       await this._reader?.cancel();
       await this.port.close();
 
-      // Reopen Port
+      // 重新打开端口
       await this.port.open({ baudRate: baud });
 
-      // Clear buffer again
+      // 再次清空缓冲区
       await this.flushSerialBuffers();
 
-      // Restart Readloop
+      // 重启读取循环
       this.readLoop();
     } catch {
-      //      this.logger.error(`Reconfigure port error`);
-      //      throw new Error(`Unable to change the baud rate to ${baud}`);
+      //      this.logger.error(`重新配置端口错误`);
+      //      throw new Error(`无法将波特率更改为 ${baud}`);
     } finally {
-      // Always reset flag, even on error or early return
+      // 始终重置标志，即使在错误或提前返回时
       this._isReconfiguring = false;
     }
   }
 
   /**
    * @name syncWithTimeout
-   * Sync with timeout that can be abandoned (for reset strategy loop)
-   * This is internally time-bounded and checks the abandon flag
+   * 带超时的同步，可以放弃（用于复位策略循环）
+   * 此方法内部有时间限制，并检查放弃标志
    */
   async syncWithTimeout(timeoutMs: number): Promise<boolean> {
     const startTime = Date.now();
 
     for (let i = 0; i < 5; i++) {
-      // Check if we've exceeded the timeout
+      // 检查是否超过超时时间
       if (Date.now() - startTime > timeoutMs) {
         return false;
       }
 
-      // Check abandon flag
+      // 检查放弃标志
       if (this._abandonCurrentOperation) {
         return false;
       }
@@ -2522,7 +2458,7 @@ export class ESPLoader extends EventTarget {
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
-        // Check abandon flag after error
+        // 出错后检查放弃标志
         if (this._abandonCurrentOperation) {
           return false;
         }
@@ -2536,8 +2472,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name sync
-   * Put into ROM bootload mode & attempt to synchronize with the
-   * ESP ROM bootloader, we will retry a few times
+   * 进入 ROM 引导加载模式并尝试与 ESP ROM 引导加载程序同步，我们将重试几次
    */
   async sync() {
     for (let i = 0; i < 5; i++) {
@@ -2550,13 +2485,12 @@ export class ESPLoader extends EventTarget {
       await sleep(SYNC_TIMEOUT);
     }
 
-    throw new Error("Couldn't sync to ESP. Try resetting.");
+    throw new Error("无法同步到 ESP。请尝试复位。");
   }
 
   /**
    * @name _sync
-   * Perform a soft-sync using AT sync packets, does not perform
-   * any hardware resetting
+   * 使用 AT 同步包执行软同步，不执行任何硬件复位
    */
   async _sync() {
     await this.sendCommand(ESP_SYNC, SYNC_PACKET);
@@ -2569,7 +2503,7 @@ export class ESPLoader extends EventTarget {
         }
       } catch (e) {
         if (this.debug) {
-          this.logger.debug(`Sync attempt ${i + 1} failed: ${e}`);
+          this.logger.debug(`同步尝试 ${i + 1} 失败: ${e}`);
         }
       }
     }
@@ -2578,7 +2512,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name getFlashWriteSize
-   * Get the Flash write size based on the chip
+   * 根据芯片获取闪存写入大小
    */
   getFlashWriteSize() {
     if (this.IS_STUB) {
@@ -2589,10 +2523,8 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name flashData
-   * Program a full, uncompressed binary file into SPI Flash at
-   *   a given offset. If an ESP32 and md5 string is passed in, will also
-   *   verify memory. ESP8266 does not have checksum memory verification in
-   *   ROM
+   * 将完整的未压缩二进制文件编程到 SPI 闪存的给定偏移量处。
+   * 如果是 ESP32 且传入了 md5 字符串，还将验证内存。ESP8266 在 ROM 中没有校验和内存验证功能。
    */
   async flashData(
     binaryData: ArrayBuffer,
@@ -2601,16 +2533,16 @@ export class ESPLoader extends EventTarget {
     compress = false,
   ) {
     if (binaryData.byteLength >= 8) {
-      // unpack the (potential) image header
+      // 解包（潜在的）镜像头部
       const header = Array.from(new Uint8Array(binaryData, 0, 4));
       const headerMagic = header[0];
       const headerFlashMode = header[2];
       const headerFlashSizeFreq = header[3];
 
       this.logger.log(
-        `Image header, Magic=${toHex(headerMagic)}, FlashMode=${toHex(
+        `镜像头部，Magic=${toHex(headerMagic)}，FlashMode=${toHex(
           headerFlashMode,
-        )}, FlashSizeFreq=${toHex(headerFlashSizeFreq)}`,
+        )}，FlashSizeFreq=${toHex(headerFlashSizeFreq)}`,
       );
     }
 
@@ -2629,7 +2561,7 @@ export class ESPLoader extends EventTarget {
       }).buffer;
       compressedFilesize = dataToFlash.byteLength;
       this.logger.log(
-        `Writing data with filesize: ${uncompressedFilesize}. Compressed Size: ${compressedFilesize}`,
+        `正在写入数据，文件大小: ${uncompressedFilesize}。压缩后大小: ${compressedFilesize}`,
       );
       timeout = await this.flashDeflBegin(
         uncompressedFilesize,
@@ -2637,7 +2569,7 @@ export class ESPLoader extends EventTarget {
         offset,
       );
     } else {
-      this.logger.log(`Writing data with filesize: ${uncompressedFilesize}`);
+      this.logger.log(`正在写入数据，文件大小: ${uncompressedFilesize}`);
       dataToFlash = binaryData;
       await this.flashBegin(uncompressedFilesize, offset);
     }
@@ -2654,7 +2586,7 @@ export class ESPLoader extends EventTarget {
     while (filesize - position > 0) {
       if (this.debug) {
         this.logger.log(
-          `Writing at ${toHex(offset + seq * flashWriteSize, 8)} `,
+          `正在写入地址 ${toHex(offset + seq * flashWriteSize, 8)} `,
         );
       }
       if (filesize - position >= flashWriteSize) {
@@ -2662,7 +2594,7 @@ export class ESPLoader extends EventTarget {
           new Uint8Array(dataToFlash, position, flashWriteSize),
         );
       } else {
-        // Pad the last block only if we are sending uncompressed data.
+        // 仅当发送未压缩数据时才填充最后一个块。
         block = Array.from(
           new Uint8Array(dataToFlash, position, filesize - position),
         );
@@ -2678,8 +2610,8 @@ export class ESPLoader extends EventTarget {
         await this.flashBlock(block, seq);
       }
       seq += 1;
-      // If using compression we update the progress with the proportional size of the block taking into account the compression ratio.
-      // This way we report progress on the uncompressed size
+      // 如果使用压缩，我们根据块长度与压缩比例成比例地更新进度。
+      // 这样我们报告的是未压缩大小的进度
       written += compress
         ? Math.round((block.length * uncompressedFilesize) / compressedFilesize)
         : block.length;
@@ -2690,10 +2622,10 @@ export class ESPLoader extends EventTarget {
       );
     }
     this.logger.log(
-      "Took " + (Date.now() - stamp) + "ms to write " + filesize + " bytes",
+      "写入 " + filesize + " 字节耗时 " + (Date.now() - stamp) + " 毫秒",
     );
 
-    // Only send flashF finish if running the stub because ir causes the ROM to exit and run user code
+    // 仅当运行 stub 时才发送 flash finish，因为这会促使 ROM 退出并运行用户代码
     if (this.IS_STUB) {
       await this.flashBegin(0, 0);
       if (compress) {
@@ -2706,7 +2638,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name flashBlock
-   * Send one block of data to program into SPI Flash memory
+   * 发送一个数据块以编程到 SPI 闪存中
    */
   async flashBlock(data: number[], seq: number, timeout = DEFAULT_TIMEOUT) {
     await this.checkCommand(
@@ -2727,11 +2659,10 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name flashBegin
-   * Prepare for flashing by attaching SPI chip and erasing the
-   *   number of blocks requred.
+   * 通过附加 SPI 芯片并擦除所需数量的块来为闪存做准备。
    */
   async flashBegin(size = 0, offset = 0, encrypted = false) {
-    // Flush serial buffers before flash write operation
+    // 在闪存写入操作之前刷新串行缓冲区
     await this.flushSerialBuffers();
 
     let eraseSize;
@@ -2787,21 +2718,21 @@ export class ESPLoader extends EventTarget {
       buffer = buffer.concat(pack("<I", encrypted ? 1 : 0));
     }
     this.logger.log(
-      "Erase size " +
+      "擦除大小 " +
         eraseSize +
-        ", blocks " +
+        "，块数 " +
         numBlocks +
-        ", block size " +
+        "，块大小 " +
         toHex(flashWriteSize, 4) +
-        ", offset " +
+        "，偏移量 " +
         toHex(offset, 4) +
-        ", encrypted " +
-        (encrypted ? "yes" : "no"),
+        "，加密 " +
+        (encrypted ? "是" : "否"),
     );
     await this.checkCommand(ESP_FLASH_BEGIN, buffer, 0, timeout);
     if (size != 0 && !this.IS_STUB) {
       this.logger.log(
-        "Took " + (Date.now() - stamp) + "ms to erase " + numBlocks + " bytes",
+        "擦除 " + numBlocks + " 字节耗时 " + (Date.now() - stamp) + " 毫秒",
       );
     }
     return numBlocks;
@@ -2813,8 +2744,8 @@ export class ESPLoader extends EventTarget {
    */
 
   async flashDeflBegin(size = 0, compressedSize = 0, offset = 0) {
-    // Start downloading compressed data to Flash (performs an erase)
-    // Returns number of blocks to write.
+    // 开始下载压缩数据到闪存（执行擦除）
+    // 返回要写入的块数。
     const flashWriteSize = this.getFlashWriteSize();
     const numBlocks = Math.floor(
       (compressedSize + flashWriteSize - 1) / flashWriteSize,
@@ -2826,10 +2757,10 @@ export class ESPLoader extends EventTarget {
     let timeout = 0;
 
     if (this.IS_STUB) {
-      writeSize = size; // stub expects number of bytes here, manages erasing internally
-      timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, writeSize); // ROM performs the erase up front
+      writeSize = size; // stub 期望这里的字节数，在内部管理擦除
+      timeout = timeoutPerMb(ERASE_REGION_TIMEOUT_PER_MB, writeSize); // ROM 预先执行擦除
     } else {
-      writeSize = eraseBlocks * flashWriteSize; // ROM expects rounded up to erase block size
+      writeSize = eraseBlocks * flashWriteSize; // ROM 期望向上取整到擦除块大小
       timeout = DEFAULT_TIMEOUT;
     }
     const buffer = pack("<IIII", writeSize, numBlocks, flashWriteSize, offset);
@@ -2874,7 +2805,7 @@ export class ESPLoader extends EventTarget {
   ) {
     let buffer = pack("<IIII", address, value, mask, delayUs);
     if (delayAfterUs > 0) {
-      // add a dummy write to a date register as an excuse to have a delay
+      // 添加一个对日期寄存器的虚拟写入作为延迟的借口
       buffer = buffer.concat(
         pack(
           "<IIII",
@@ -2894,7 +2825,7 @@ export class ESPLoader extends EventTarget {
     misoBits: number,
   ) {
     if (spiAddresses.mosiDlenOffs != -1) {
-      // Actual MCUs have a more sophisticated way to set up "user" commands
+      // 实际 MCU 有一种更复杂的方式来设置“用户”命令
       const SPI_MOSI_DLEN_REG =
         spiAddresses.regBase + spiAddresses.mosiDlenOffs;
       const SPI_MISO_DLEN_REG =
@@ -2923,7 +2854,7 @@ export class ESPLoader extends EventTarget {
         return;
       }
     }
-    throw Error("SPI command did not complete in time");
+    throw Error("SPI 命令未在时间内完成");
   }
 
   async runSpiFlashCommand(
@@ -2931,22 +2862,19 @@ export class ESPLoader extends EventTarget {
     data: number[],
     readBits = 0,
   ) {
-    // Run an arbitrary SPI flash command.
+    // 运行任意的 SPI 闪存命令。
 
-    // This function uses the "USR_COMMAND" functionality in the ESP
-    // SPI hardware, rather than the precanned commands supported by
-    // hardware. So the value of spiflash_command is an actual command
-    // byte, sent over the wire.
+    // 此函数使用 ESP SPI 硬件中的“USR_COMMAND”功能，而不是硬件支持的预定义命令。
+    // 因此 spiflash_command 的值是通过线路发送的实际命令字节。
 
-    // After writing command byte, writes 'data' to MOSI and then
-    // reads back 'read_bits' of reply on MISO. Result is a number.
+    // 写入命令字节后，将 'data' 写入 MOSI，然后从 MISO 读回 'read_bits' 的回复。结果是一个数字。
 
-    // SPI_USR register flags
+    // SPI_USR 寄存器标志
     const SPI_USR_COMMAND = 1 << 31;
     const SPI_USR_MISO = 1 << 28;
     const SPI_USR_MOSI = 1 << 27;
 
-    // SPI registers, base address differs
+    // SPI 寄存器，基地址不同
     const spiAddresses = getSpiFlashAddresses(this.getChipFamily());
     const base = spiAddresses.regBase;
     const SPI_CMD_REG = base;
@@ -2954,21 +2882,17 @@ export class ESPLoader extends EventTarget {
     const SPI_USR2_REG = base + spiAddresses.usr2Offs;
     const SPI_W0_REG = base + spiAddresses.w0Offs;
 
-    // SPI peripheral "command" bitmasks for SPI_CMD_REG
+    // SPI 外设“命令”位掩码，用于 SPI_CMD_REG
     const SPI_CMD_USR = 1 << 18;
 
-    // shift values
+    // 移位值
     const SPI_USR2_COMMAND_LEN_SHIFT = 28;
 
     if (readBits > 32) {
-      throw new Error(
-        "Reading more than 32 bits back from a SPI flash operation is unsupported",
-      );
+      throw new Error("从 SPI 闪存操作读回超过 32 位不受支持");
     }
     if (data.length > 64) {
-      throw new Error(
-        "Writing more than 64 bytes of data with one SPI command is unsupported",
-      );
+      throw new Error("使用单个 SPI 命令写入超过 64 字节的数据不受支持");
     }
 
     const dataBits = data.length * 8;
@@ -2992,19 +2916,19 @@ export class ESPLoader extends EventTarget {
       (7 << SPI_USR2_COMMAND_LEN_SHIFT) | spiflashCommand,
     );
     if (dataBits == 0) {
-      await this.writeRegister(SPI_W0_REG, 0); // clear data register before we read it
+      await this.writeRegister(SPI_W0_REG, 0); // 在读取之前清除数据寄存器
     } else {
       const padLen = (4 - (data.length % 4)) % 4;
-      data = data.concat(new Array(padLen).fill(0x00)); // pad to 32-bit multiple
+      data = data.concat(new Array(padLen).fill(0x00)); // 填充到 32 位倍数
 
       const words = unpack("I".repeat(Math.floor(data.length / 4)), data);
       let nextReg = SPI_W0_REG;
 
-      this.logger.debug(`Words Length: ${words.length}`);
+      this.logger.debug(`字数: ${words.length}`);
 
       for (const word of words) {
         this.logger.debug(
-          `Writing word ${toHex(word)} to register offset ${toHex(nextReg)}`,
+          `将字 ${toHex(word)} 写入寄存器偏移量 ${toHex(nextReg)}`,
         );
         await this.writeRegister(nextReg, word);
         nextReg += 4;
@@ -3014,25 +2938,25 @@ export class ESPLoader extends EventTarget {
     await this.waitDone(SPI_CMD_REG, SPI_CMD_USR);
 
     const status = await this.readRegister(SPI_W0_REG);
-    // restore some SPI controller registers
+    // 恢复一些 SPI 控制器寄存器
     await this.writeRegister(SPI_USR_REG, oldSpiUsr);
     await this.writeRegister(SPI_USR2_REG, oldSpiUsr2);
     return status;
   }
   async detectFlashSize() {
-    this.logger.debug("Detecting Flash Size");
+    this.logger.debug("正在检测闪存大小");
 
     const flashId = await this.flashId();
     const flashIdLowbyte = (flashId >> 16) & 0xff;
 
     this.flashSize = DETECTED_FLASH_SIZES[flashIdLowbyte];
-    this.logger.log(`Auto-detected Flash size: ${this.flashSize}`);
+    this.logger.log(`自动检测到的闪存大小: ${this.flashSize}`);
   }
 
   /**
    * @name getEraseSize
-   * Calculate an erase size given a specific size in bytes.
-   *   Provides a workaround for the bootloader erase bug on ESP8266.
+   * 根据给定的字节大小计算擦除大小。
+   *   为 ESP8266 上的引导加载程序擦除错误提供解决方法。
    */
   getEraseSize(offset: number, size: number) {
     const sectorsPerBlock = 16;
@@ -3054,7 +2978,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name memBegin (592)
-   * Start downloading an application image to RAM
+   * 开始下载应用程序镜像到 RAM
    */
   async memBegin(
     size: number,
@@ -3070,7 +2994,7 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name memBlock (609)
-   * Send a block of an image to RAM
+   * 发送镜像的一个块到 RAM
    */
   async memBlock(data: number[], seq: number) {
     return await this.checkCommand(
@@ -3082,12 +3006,11 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name memFinish (615)
-   * Leave download mode and run the application
+   * 离开下载模式并运行应用程序
    *
-   * Sending ESP_MEM_END usually sends a correct response back, however sometimes
-   * (with ROM loader) the executed code may reset the UART or change the baud rate
-   * before the transmit FIFO is empty. So in these cases we set a short timeout and
-   * ignore errors.
+   * 发送 ESP_MEM_END 通常会返回正确的响应，但有时（对于 ROM 加载程序）
+   * 执行的代码可能在发送 FIFO 为空之前复位 UART 或更改波特率。
+   * 因此在这些情况下，我们设置较短的超时并忽略错误。
    */
   async memFinish(entrypoint = 0) {
     const timeout = this.IS_STUB ? DEFAULT_TIMEOUT : MEM_END_ROM_TIMEOUT;
@@ -3097,23 +3020,23 @@ export class ESPLoader extends EventTarget {
 
   async runStub(skipFlashDetection = false): Promise<EspStubLoader> {
     this.logger.debug(
-      `Loading stub for ${this.chipName}, revision: ${this.chipRevision}`,
+      `正在为 ${this.chipName} 加载 stub，修订版本: ${this.chipRevision}`,
     );
     const stub = await getStubCode(this.chipFamily, this.chipRevision);
 
-    // No stub available for this chip, return ROM loader
+    // 此芯片没有可用的 stub，返回 ROM 加载程序
     if (stub === null) {
       this.logger.log(
-        `Stub flasher is not yet supported on ${this.chipName}, using ROM loader`,
+        `Stub 闪存器尚不支持 ${this.chipName}，使用 ROM 加载程序`,
       );
       return this as unknown as EspStubLoader;
     }
 
-    // We're transferring over USB, right?
+    // 我们正在通过 USB 传输，对吗？
     const ramBlock = USB_RAM_BLOCK;
 
-    // Upload
-    this.logger.debug("Uploading stub...");
+    // 上传
+    this.logger.debug("正在上传 stub...");
     for (const field of ["text", "data"] as const) {
       const fieldData = stub[field];
       const offset = stub[`${field}_start` as "text_start" | "data_start"];
@@ -3135,12 +3058,12 @@ export class ESPLoader extends EventTarget {
     const pChar = String.fromCharCode(...p);
 
     if (pChar != "OHAI") {
-      throw new Error("Failed to start stub. Unexpected response: " + pChar);
+      throw new Error("无法启动 stub。意外响应: " + pChar);
     }
-    this.logger.debug("Stub is now running...");
+    this.logger.debug("Stub 正在运行...");
     const espStubLoader = new EspStubLoader(this.port, this.logger, this);
 
-    // Try to autodetect the flash size.
+    // 尝试自动检测闪存大小。
     if (!skipFlashDetection) {
       await espStubLoader.detectFlashSize();
     }
@@ -3193,52 +3116,50 @@ export class ESPLoader extends EventTarget {
 
   async writeToStream(data: number[]) {
     if (!this.port.writable) {
-      this.logger.debug("Port writable stream not available, skipping write");
+      this.logger.debug("端口可写流不可用，跳过写入");
       return;
     }
 
     if (this._isReconfiguring) {
-      throw new Error("Cannot write during port reconfiguration");
+      throw new Error("无法在端口重新配置期间写入");
     }
 
-    // Queue writes to prevent lock contention (critical for CP2102 on Windows)
+    // 排队写入以防止锁定争用（对于 Windows 上的 CP2102 至关重要）
     this._writeChain = this._writeChain
       .then(
         async () => {
-          // Check if port is still writable before attempting write
+          // 在尝试写入之前检查端口是否仍可写
           if (!this.port.writable) {
-            throw new Error("Port became unavailable during write");
+            throw new Error("写入期间端口变得不可用");
           }
 
-          // Get or create persistent writer
+          // 获取或创建持久写入器
           if (!this._writer) {
             try {
               this._writer = this.port.writable.getWriter();
             } catch (err) {
-              this.logger.error(`Failed to get writer: ${err}`);
+              this.logger.error(`获取写入器失败: ${err}`);
               throw err;
             }
           }
 
-          // Perform the write
+          // 执行写入
           await this._writer.write(new Uint8Array(data));
         },
         async () => {
-          // Previous write failed, but still attempt this write
-          this.logger.debug(
-            "Previous write failed, attempting recovery for current write",
-          );
+          // 先前的写入失败，但继续尝试本次写入
+          this.logger.debug("先前的写入失败，正在尝试恢复当前写入");
           if (!this.port.writable) {
-            throw new Error("Port became unavailable during write");
+            throw new Error("写入期间端口变得不可用");
           }
 
-          // Writer was likely cleaned up by previous error, create new one
+          // 写入器可能已被先前的错误清理，创建新的
           if (!this._writer) {
             try {
               this._writer = this.port.writable.getWriter();
             } catch (err) {
-              this.logger.debug(`Failed to get writer in recovery: ${err}`);
-              throw new Error("Cannot acquire writer lock");
+              this.logger.debug(`恢复时获取写入器失败: ${err}`);
+              throw new Error("无法获取写入器锁");
             }
           }
 
@@ -3246,21 +3167,21 @@ export class ESPLoader extends EventTarget {
         },
       )
       .catch((err) => {
-        this.logger.error(`Write error: ${err}`);
-        // Ensure writer is cleaned up on any error
+        this.logger.error(`写入错误: ${err}`);
+        // 确保在发生任何错误时清理写入器
         if (this._writer) {
           try {
             this._writer.releaseLock();
           } catch {
-            // Ignore release errors
+            // 忽略释放错误
           }
           this._writer = undefined;
         }
-        // Re-throw to propagate error
+        // 重新抛出以传播错误
         throw err;
       });
 
-    // Always await the write chain to ensure errors are caught
+    // 始终等待写入链以确保捕获错误
     await this._writeChain;
   }
 
@@ -3270,35 +3191,35 @@ export class ESPLoader extends EventTarget {
       return;
     }
     if (!this.port.writable) {
-      //      this.logger.debug("Port already closed, skipping disconnect");
+      //      this.logger.debug("端口已关闭，跳过断开连接");
       return;
     }
 
-    // Wait for pending writes to complete
+    // 等待待处理的写入完成
     try {
       await this._writeChain;
     } catch {
-      //      this.logger.debug("Pending write error during disconnect");
+      //      this.logger.debug("断开连接时待处理写入错误");
     }
 
-    // Release persistent writer before closing
+    // 在关闭前释放持久写入器
     if (this._writer) {
       try {
         await this._writer.close();
         this._writer.releaseLock();
       } catch {
-        //        this.logger.debug("Writer close/release error");
+        //        this.logger.debug("写入器关闭/释放错误");
       }
       this._writer = undefined;
     } else {
-      // No persistent writer exists, close stream directly
-      // This path is taken when no writes have been queued
+      // 没有持久写入器存在，直接关闭流
+      // 当没有写入排队时采用此路径
       try {
         const writer = this.port.writable.getWriter();
         await writer.close();
         writer.releaseLock();
       } catch {
-        //        this.logger.debug("Direct writer close error");
+        //        this.logger.debug("直接写入器关闭错误");
       }
     }
 
@@ -3308,9 +3229,9 @@ export class ESPLoader extends EventTarget {
         return;
       }
 
-      // Set a timeout to prevent hanging (important for node-usb)
+      // 设置超时以防止挂起（对于 node-usb 很重要）
       const timeout = setTimeout(() => {
-        this.logger.debug("Disconnect timeout - forcing resolution");
+        this.logger.debug("断开连接超时 - 强制解决");
         resolve(undefined);
       }, 1000);
 
@@ -3323,30 +3244,30 @@ export class ESPLoader extends EventTarget {
         { once: true },
       );
 
-      // Only cancel if reader is still active
+      // 仅在读取器仍处于活动状态时取消
       try {
         this._reader.cancel();
       } catch {
-        // Reader already released, resolve immediately
+        // 读取器已释放，立即解决
         clearTimeout(timeout);
         resolve(undefined);
       }
     });
     this.connected = false;
 
-    // Close the port (important for node-usb adapter)
+    // 关闭端口（对于 node-usb 适配器很重要）
     try {
       await this.port.close();
-      this.logger.debug("Port closed successfully");
+      this.logger.debug("端口成功关闭");
     } catch (err) {
-      this.logger.debug(`Port close error: ${err}`);
+      this.logger.debug(`端口关闭错误: ${err}`);
     }
   }
 
   /**
    * @name releaseReaderWriter
-   * Release reader and writer locks without closing the port
-   * Used when switching to console mode
+   * 释放读取器和写入器锁而不关闭端口
+   * 在切换到控制台模式时使用
    */
   async releaseReaderWriter() {
     if (this._parent) {
@@ -3354,53 +3275,53 @@ export class ESPLoader extends EventTarget {
       return;
     }
 
-    // Wait for pending writes to complete
+    // 等待待处理的写入完成
     try {
       await this._writeChain;
     } catch {
-      //      this.logger.debug("Pending write error during release");
+      //      this.logger.debug("释放期间待处理写入错误");
     }
 
-    // Release writer
+    // 释放写入器
     if (this._writer) {
       try {
         this._writer.releaseLock();
-        this.logger.debug("Writer released");
+        this.logger.debug("写入器已释放");
       } catch (err) {
-        this.logger.debug(`Writer release error: ${err}`);
+        this.logger.debug(`写入器释放错误: ${err}`);
       }
       this._writer = undefined;
     }
 
-    // Cancel reader - let readLoop's finally block handle releaseLock()
+    // 取消读取器 - 让 readLoop 的 finally 块处理 releaseLock()
     if (this._reader) {
       try {
-        // Suppress disconnect event during console mode switching
+        // 在控制台模式切换期间抑制断开连接事件
         this._suppressDisconnect = true;
 
-        // Cancel will cause readLoop to exit and call releaseLock() in its finally block
+        // 取消将导致 readLoop 退出并在其 finally 块中调用 releaseLock()
         await this._reader.cancel();
-        this.logger.debug("Reader cancelled - waiting for readLoop to finish");
+        this.logger.debug("读取器已取消 - 等待 readLoop 完成");
 
-        // CRITICAL: Wait a bit for readLoop's finally block to complete
-        // The finally block needs time to call releaseLock() and set _reader = undefined
-        // This is much faster than waiting for browser to unlock (just waiting for JS execution)
+        // 关键：等待片刻让 readLoop 的 finally 块完成
+        // finally 块需要时间调用 releaseLock() 并将 _reader 设置为 undefined
+        // 这比等待浏览器解锁快得多（仅等待 JS 执行）
         await sleep(50);
 
-        this.logger.debug("ReadLoop cleanup should be complete");
+        this.logger.debug("ReadLoop 清理应该已完成");
       } catch (err) {
-        this.logger.debug(`Reader cancel error: ${err}`);
+        this.logger.debug(`读取器取消错误: ${err}`);
       }
-      // Don't call releaseLock() or set _reader to undefined here
-      // Let readLoop's finally block handle it to avoid race conditions
+      // 不要在此处调用 releaseLock() 或将 _reader 设置为 undefined
+      // 让 readLoop 的 finally 块处理，以避免竞争条件
     }
   }
 
   /**
    * @name resetToFirmware
-   * Public method to reset device from bootloader to firmware for console mode
-   * Automatically detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
-   * @returns true if reset was performed, false if not needed
+   * 公共方法，用于在切换到控制台模式时将设备从引导加载程序复位到固件
+   * 自动检测 USB-JTAG/串行和 USB-OTG 设备并执行适当的复位
+   * @returns 如果执行了复位则返回 true，如果不需要则返回 false
    */
   public async resetToFirmware(): Promise<boolean> {
     return await this._resetToFirmwareIfNeeded();
@@ -3408,26 +3329,26 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name detectUsbConnectionType
-   * Detect if device is using USB-JTAG/Serial or USB-OTG (not external serial chip)
-   * Uses USB PID (Product ID) for reliable detection - does NOT require chipFamily
-   * @returns true if USB-JTAG or USB-OTG, false if external serial chip
+   * 检测设备是否使用 USB-JTAG/串行或 USB-OTG（而非外部串行芯片）
+   * 使用 USB PID（产品 ID）进行可靠检测 - 不需要 chipFamily
+   * @returns 如果为 USB-JTAG 或 USB-OTG 则返回 true，如果为外部串行芯片则返回 false
    */
   public async detectUsbConnectionType(): Promise<boolean> {
-    // Use PID-based detection
+    // 使用基于 PID 的检测
     const portInfo = this.port.getInfo();
     const pid = portInfo.usbProductId;
     const vid = portInfo.usbVendorId;
 
-    // Check if this is an Espressif device
+    // 检查是否为乐鑫设备
     const isEspressif = vid === 0x303a;
 
     if (!isEspressif) {
-      this.logger.debug("Not Espressif VID - external serial chip");
+      this.logger.debug("非乐鑫 VID - 外部串行芯片");
       return false;
     }
 
-    // ESP32-S2/S3/C3/C5/C6/C61/H2/P4 USB-JTAG/OTG PIDs
-    // According to official Espressif documentation:
+    // ESP32-S2/S3/C3/C5/C6/C61/H2/P4 USB-JTAG/OTG PID
+    // 根据乐鑫官方文档：
     // https://docs.espressif.com/projects/esp-iot-solution/en/latest/usb/usb_overview/usb_device_const_COM.html
     // 0x0002 = ESP32-S2 USB-OTG, 0x0012 = ESP32-P4 USB-Serial-JTAG
     // 0x1001 = ESP32-S3, C3, C5, C6, C61, H2 USB-Serial-JTAG
@@ -3435,7 +3356,7 @@ export class ESPLoader extends EventTarget {
     const isUsbJtag = usbJtagPids.includes(pid || 0);
 
     this.logger.debug(
-      `USB-JTAG/OTG detection: ${isUsbJtag ? "YES" : "NO"} (PID=0x${pid?.toString(16)})`,
+      `USB-JTAG/OTG 检测: ${isUsbJtag ? "是" : "否"} (PID=0x${pid?.toString(16)})`,
     );
 
     return isUsbJtag;
@@ -3513,36 +3434,36 @@ export class ESPLoader extends EventTarget {
     const uartNo = (await this.readRegister(bufNoAddr)) & 0xff;
 
     if (otgVal !== null && uartNo === otgVal) {
-      this.logger.debug(`USB mode: USB-OTG (uartNo=${uartNo})`);
+      this.logger.debug(`USB 模式: USB-OTG (uartNo=${uartNo})`);
       return { mode: "usb-otg", uartNo };
     }
     if (jtagSerialVal !== null && uartNo === jtagSerialVal) {
-      this.logger.debug(`USB mode: USB-JTAG/Serial (uartNo=${uartNo})`);
+      this.logger.debug(`USB 模式: USB-JTAG/串行 (uartNo=${uartNo})`);
       return { mode: "usb-jtag-serial", uartNo };
     }
 
-    this.logger.debug(`USB mode: UART (uartNo=${uartNo})`);
+    this.logger.debug(`USB 模式: UART (uartNo=${uartNo})`);
     return { mode: "uart", uartNo };
   }
 
   /**
-   * Check if the current chip supports USB-JTAG or USB-OTG
-   * @returns true if chip has native USB support (JTAG or OTG)
+   * 检查当前芯片是否支持 USB-JTAG 或 USB-OTG
+   * @returns 如果芯片具有原生 USB 支持（JTAG 或 OTG）则返回 true
    */
   public supportsNativeUsb(): boolean {
     const family = this._parent ? this._parent.chipFamily : this.chipFamily;
 
-    // Chips with USB-JTAG/Serial or USB-OTG support
+    // 具有 USB-JTAG/串行或 USB-OTG 支持的芯片
     const usbChips = [
       CHIP_FAMILY_ESP32S2, // USB-OTG
-      CHIP_FAMILY_ESP32S3, // USB-OTG + USB-JTAG/Serial
-      CHIP_FAMILY_ESP32C3, // USB-JTAG/Serial
-      CHIP_FAMILY_ESP32C5, // USB-JTAG/Serial
-      CHIP_FAMILY_ESP32C6, // USB-JTAG/Serial
-      CHIP_FAMILY_ESP32C61, // USB-JTAG/Serial
-      CHIP_FAMILY_ESP32H2, // USB-JTAG/Serial
-      CHIP_FAMILY_ESP32H4, // USB-JTAG/Serial
-      CHIP_FAMILY_ESP32P4, // USB-OTG + USB-JTAG/Serial
+      CHIP_FAMILY_ESP32S3, // USB-OTG + USB-JTAG/串行
+      CHIP_FAMILY_ESP32C3, // USB-JTAG/串行
+      CHIP_FAMILY_ESP32C5, // USB-JTAG/串行
+      CHIP_FAMILY_ESP32C6, // USB-JTAG/串行
+      CHIP_FAMILY_ESP32C61, // USB-JTAG/串行
+      CHIP_FAMILY_ESP32H2, // USB-JTAG/串行
+      CHIP_FAMILY_ESP32H4, // USB-JTAG/串行
+      CHIP_FAMILY_ESP32P4, // USB-OTG + USB-JTAG/串行
     ];
 
     return usbChips.includes(family);
@@ -3550,9 +3471,9 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name _ensureStreamsReady
-   * After a hardware reset, ensure port streams are available.
-   * On WebUSB, recreates streams since they break after reset.
-   * On Web Serial, waits for streams to become available.
+   * 硬件复位后，确保端口流可用。
+   * 在 WebUSB 上，由于复位后流会中断，因此重新创建流。
+   * 在 Web 串行上，等待流变得可用。
    */
   private async _ensureStreamsReady(): Promise<void> {
     if (this.isWebUSB()) {
@@ -3560,7 +3481,7 @@ export class ESPLoader extends EventTarget {
         await (
           this.port as unknown as { recreateStreams(): Promise<void> }
         ).recreateStreams();
-        this.logger.debug("WebUSB streams recreated");
+        this.logger.debug("WebUSB 流已重新创建");
 
         let retries = 30;
         while (retries > 0 && !this.port.readable) {
@@ -3568,13 +3489,11 @@ export class ESPLoader extends EventTarget {
           retries--;
         }
         if (!this.port.readable) {
-          throw new Error(
-            "Readable stream not available after recreating streams",
-          );
+          throw new Error("重新创建流后可读流不可用");
         }
-        this.logger.debug("WebUSB streams are ready");
+        this.logger.debug("WebUSB 流已准备就绪");
       } catch (err) {
-        this.logger.error(`Failed to recreate WebUSB streams: ${err}`);
+        this.logger.error(`重新创建 WebUSB 流失败: ${err}`);
         this._consoleMode = false;
         throw err;
       }
@@ -3586,78 +3505,76 @@ export class ESPLoader extends EventTarget {
       }
       if (!this.port.readable) {
         this._consoleMode = false;
-        throw new Error("Readable stream not available after reset");
+        throw new Error("复位后可读流不可用");
       }
-      this.logger.debug("Port streams are ready");
+      this.logger.debug("端口流已准备就绪");
     }
   }
 
   /**
    * @name enterConsoleMode
-   * Prepare device for console mode by resetting to firmware
-   * Handles both USB-JTAG/OTG devices (closes port) and external serial chips (keeps port open)
-   * @returns true if port was closed (USB-JTAG), false if port stays open (serial chip)
+   * 通过复位到固件来为控制台模式准备设备
+   * 处理 USB-JTAG/OTG 设备（关闭端口）和外部串行芯片（保持端口打开）
+   * @returns 如果端口已关闭（USB-JTAG）则返回 true，如果端口保持打开（串行芯片）则返回 false
    */
   public async enterConsoleMode(): Promise<boolean> {
-    // Check if port is open - if not, we need a new port selection
+    // 检查端口是否打开 - 如果没有，我们需要一个新的端口选择
     if (!this.port.writable || !this.port.readable) {
-      this.logger.debug("Port is not open - port selection needed");
-      // Return true to signal that port selection is needed
-      // The caller should handle port selection and try again
+      this.logger.debug("端口未打开 - 需要端口选择");
+      // 返回 true 表示需要端口选择
+      // 调用方应处理端口选择并重试
       return true;
     }
 
-    // Re-detect USB connection type to ensure we have a definitive value
+    // 重新检测 USB 连接类型以确保我们有确定的值
     let isUsbJtag: boolean;
     try {
       isUsbJtag = await this.detectUsbConnectionType();
       this.logger.debug(
-        `USB connection type detected: ${isUsbJtag ? "USB-JTAG/OTG" : "External Serial Chip"}`,
+        `检测到 USB 连接类型: ${isUsbJtag ? "USB-JTAG/OTG" : "外部串行芯片"}`,
       );
 
-      // CRITICAL: Set the cached value so _resetToFirmwareIfNeeded() can use it
+      // 关键：设置缓存值，以便 _resetToFirmwareIfNeeded() 可以使用它
       this._isUsbJtagOrOtg = isUsbJtag;
     } catch (err) {
-      // If detection fails, fall back to cached value or fail-fast
+      // 如果检测失败，回退到缓存值或快速失败
       if (this.isUsbJtagOrOtg === undefined) {
         throw new Error(
-          `Cannot enter console mode: USB connection type unknown and detection failed: ${err}`,
+          `无法进入控制台模式：USB 连接类型未知且检测失败: ${err}`,
         );
       }
 
-      this.logger.debug(
-        `USB detection failed, using cached value: ${this.isUsbJtagOrOtg}`,
-      );
+      this.logger.debug(`USB 检测失败，使用缓存值: ${this.isUsbJtagOrOtg}`);
       isUsbJtag = this.isUsbJtagOrOtg;
     }
 
-    // Set console mode flag BEFORE any operations
+    // 在任何操作之前设置控制台模式标志
     this._consoleMode = true;
 
     if (isUsbJtag) {
-      // USB-JTAG/OTG devices: Use reset which may close port
+      // USB-JTAG/OTG 设备：使用可能关闭端口的复位
       const wasReset = await this._resetToFirmwareIfNeeded();
       if (wasReset) {
-        return true; // port closed, caller must reopen
+        return true; // 端口已关闭，调用方必须重新打开
       }
 
-      // Port stayed open (e.g. C3/C5/C6/H2 classic reset)
+      // 端口保持打开（例如 C3/C5/C6/H2 经典复位）
       await this._ensureStreamsReady();
       return false;
     } else {
-      // External serial chip devices: Release locks and do simple reset
+      // 外部串行芯片设备：释放锁并执行简单复位
       try {
         await this.releaseReaderWriter();
         await sleep(100);
       } catch (err) {
-        this.logger.debug(`Failed to release locks: ${err}`);
+        this.logger.debug(`释放锁失败: ${err}`);
       }
 
       try {
         await this.hardResetToFirmware();
-        this.logger.debug("Device reset to firmware mode");
+        this.logger.debug("设备已复位到固件模式");
       } catch (err) {
-        this.logger.debug(`Could not reset device: ${err}`);
+        this.logger.debug(`无法复位设备: ${err}`);
       }
 
       await this._ensureStreamsReady();
@@ -3667,10 +3584,10 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name _clearForceDownloadBootIfNeeded
-   * Read and clear the force download boot flag if it is set
-   * This should ONLY be called when on ROM (not stub) and before WDT reset
-   * Clearing it on every connect causes issues with flash operations
-   * Returns true if the flag was cleared, false if it was already clear
+   * 读取并清除强制下载启动标志（如果已设置）
+   * 这应该仅在处于 ROM（非 stub）且 WDT 复位之前调用
+   * 在每次连接时清除它会导致闪存操作出现问题
+   * 如果标志已清除则返回 true，如果已清除则返回 false
    */
   private async _clearForceDownloadBootIfNeeded(): Promise<boolean> {
     try {
@@ -3678,7 +3595,7 @@ export class ESPLoader extends EventTarget {
       let mask: number;
       let chipName: string;
 
-      // Get register address and mask for this chip
+      // 获取此芯片的寄存器地址和掩码
       if (this.chipFamily === CHIP_FAMILY_ESP32S2) {
         regAddr = ESP32S2_RTC_CNTL_OPTION1_REG;
         mask = ESP32S2_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
@@ -3692,86 +3609,76 @@ export class ESPLoader extends EventTarget {
         mask = ESP32P4_RTC_CNTL_FORCE_DOWNLOAD_BOOT_MASK;
         chipName = "ESP32-P4";
       } else {
-        // Not a chip that needs this
+        // 不是需要此操作的芯片
         return false;
       }
 
-      // Read current register value
+      // 读取当前寄存器值
       const currentValue = await this.readRegister(regAddr);
       this.logger.debug(
-        `${chipName} force download boot register: 0x${currentValue.toString(16)} (mask: 0x${mask.toString(16)})`,
+        `${chipName} 强制下载启动寄存器: 0x${currentValue.toString(16)} (掩码: 0x${mask.toString(16)})`,
       );
 
-      // Check if the flag is set
+      // 检查标志是否已设置
       const isFlagSet = (currentValue & mask) !== 0;
 
       if (isFlagSet) {
-        this.logger.debug(
-          `${chipName} force download boot flag is SET - clearing it`,
-        );
-        // Clear the flag by writing 0 to the masked bits
+        this.logger.debug(`${chipName} 强制下载启动标志已设置 - 正在清除`);
+        // 通过将掩码位写为 0 来清除标志
         await this.writeRegister(regAddr, 0, mask, 0);
-        this.logger.debug(`${chipName} force download boot flag cleared`);
+        this.logger.debug(`${chipName} 强制下载启动标志已清除`);
         return true;
       } else {
-        this.logger.debug(
-          `${chipName} force download boot flag is already CLEAR - no action needed`,
-        );
+        this.logger.debug(`${chipName} 强制下载启动标志已清除 - 无需操作`);
         return false;
       }
     } catch (err) {
-      this.logger.debug(`Error checking/clearing force download flag: ${err}`);
+      this.logger.debug(`检查/清除强制下载标志时出错: ${err}`);
       return false;
     }
   }
 
   /**
    * @name _resetToFirmwareIfNeeded
-   * Reset device from bootloader to firmware when switching to console mode
-   * Detects USB-JTAG/Serial and USB-OTG devices and performs appropriate reset
-   * @returns true if reconnect was performed, false otherwise
+   * 在切换到控制台模式时，将设备从引导加载程序复位到固件
+   * 检测 USB-JTAG/串行和 USB-OTG 设备并执行适当的复位
+   * @returns 如果执行了重新连接则返回 true，否则返回 false
    */
   private async _resetToFirmwareIfNeeded(): Promise<boolean> {
-    // Detect if we need WDT reset (USB-JTAG/OTG) or classic reset
+    // 检测是否需要 WDT 复位（USB-JTAG/OTG）还是经典复位
     const isUsbJtagOrOtg = await this.detectUsbConnectionType();
     try {
-      // Check if port is open - if not, assume device is already in firmware mode
+      // 检查端口是否打开 - 如果未打开，假设设备已处于固件模式
       if (!this.port.writable || !this.port.readable) {
-        this.logger.debug(
-          "Port is not open - assuming device is already in firmware mode",
-        );
+        this.logger.debug("端口未打开 - 假设设备已处于固件模式");
         return false;
       }
 
       if (isUsbJtagOrOtg) {
-        // USB-JTAG/OTG: DON'T release reader/writer before WDT reset
-        // The WDT reset needs active communication to send register write commands
-        // The port will close automatically after the WDT reset anyway
-        this.logger.debug(
-          "USB-JTAG/OTG: Keeping reader/writer active for WDT reset",
-        );
+        // USB-JTAG/OTG：不要在 WDT 复位前释放读取器/写入器
+        // WDT 复位需要活动通信才能发送寄存器写入命令
+        // 无论如何，WDT 复位后端口将自动关闭
+        this.logger.debug("USB-JTAG/OTG：为 WDT 复位保持读取器/写入器活动");
       } else {
-        // External serial chip: Release reader/writer before classic reset
+        // 外部串行芯片：在经典复位前释放读取器/写入器
         await this.releaseReaderWriter();
-        this.logger.debug(
-          "External serial: Reader/writer released before reset",
-        );
+        this.logger.debug("外部串行：复位前读取器/写入器已释放");
       }
 
-      // Use the new resetToFirmwareMode method which handles all the logic
+      // 使用新的 resetToFirmwareMode 方法，该方法处理所有逻辑
       const portWillChange = await this.resetToFirmwareMode(true);
 
       if (portWillChange) {
         this.logger.debug(
-          `${this.chipName}: Port will change after WDT reset - user must reselect port`,
+          `${this.chipName}：WDT 复位后端口将更改 - 用户必须重新选择端口`,
         );
 
-        // Dispatch event to signal port change
+        // 触发事件以通知端口更改
         this.dispatchEvent(
           new CustomEvent("usb-otg-port-change", {
             detail: {
               chipName: this.chipName,
-              message: `${this.chipName} USB port changed after reset. Please select the new port.`,
+              message: `${this.chipName} USB 端口在复位后已更改。请选择新端口。`,
               reason: "wdt-reset-to-firmware",
             },
           }),
@@ -3779,34 +3686,30 @@ export class ESPLoader extends EventTarget {
 
         return true;
       } else {
-        // Port stays the same - release reader/writer now if not already done
+        // 端口保持不变 - 现在释放读取器/写入器（如果尚未释放）
         if (isUsbJtagOrOtg) {
           await this.releaseReaderWriter();
-          this.logger.debug("Reader/writer released after reset");
+          this.logger.debug("复位后读取器/写入器已释放");
         }
         return false;
       }
     } catch (err) {
-      this.logger.error(`Reset to firmware mode failed: ${err}`);
+      this.logger.error(`复位到固件模式失败: ${err}`);
 
-      // For USB-JTAG/OTG, the port is likely dead after a failed reset
-      // For external serial, the port is usually still fine
+      // 对于 USB-JTAG/OTG，复位失败后端口可能已失效
+      // 对于外部串行，端口通常仍然正常
       if (isUsbJtagOrOtg) {
-        this.logger.debug(
-          "Forcing port reselection due to USB-JTAG/OTG reset failure",
-        );
+        this.logger.debug("由于 USB-JTAG/OTG 复位失败，强制端口重新选择");
         return true;
       }
-      this.logger.debug(
-        "External serial reset failed, but port should still be usable",
-      );
+      this.logger.debug("外部串行复位失败，但端口应该仍可用");
       return false;
     }
   }
 
   /**
-   * @name reconnectAndResume
-   * Reconnect the serial port to flush browser buffers and reload stub
+   * @name reconnect
+   * 重新连接串口以刷新浏览器缓冲区并重新加载 stub
    */
   async reconnect(): Promise<void> {
     if (this._parent) {
@@ -3815,79 +3718,79 @@ export class ESPLoader extends EventTarget {
     }
 
     try {
-      this.logger.log("Reconnecting serial port...");
+      this.logger.log("正在重新连接串口...");
       const savedBaudRate = this.currentBaudRate;
 
       this.connected = false;
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
 
-      // Wait for pending writes to complete
+      // 等待待处理的写入完成
       try {
         await this._writeChain;
       } catch (err) {
-        this.logger.debug(`Pending write error during reconnect: ${err}`);
+        this.logger.debug(`重新连接期间待处理写入错误: ${err}`);
       }
 
-      // Block new writes during port close/open
+      // 在端口关闭/打开期间阻止新写入
       this._isReconfiguring = true;
 
-      // Release persistent writer
+      // 释放持久写入器
       if (this._writer) {
         try {
           this._writer.releaseLock();
         } catch (err) {
-          this.logger.debug(`Writer release error during reconnect: ${err}`);
+          this.logger.debug(`重新连接期间写入器释放错误: ${err}`);
         }
         this._writer = undefined;
       }
 
-      // Cancel reader
+      // 取消读取器
       if (this._reader) {
         try {
           await this._reader.cancel();
         } catch (err) {
-          this.logger.debug(`Reader cancel error: ${err}`);
+          this.logger.debug(`读取器取消错误: ${err}`);
         }
         this._reader = undefined;
       }
 
-      // Close port
+      // 关闭端口
       try {
         await this.port.close();
-        this.logger.debug("Port closed");
+        this.logger.debug("端口已关闭");
       } catch (err) {
-        this.logger.debug(`Port close error: ${err}`);
+        this.logger.debug(`端口关闭错误: ${err}`);
       }
 
-      // Open the port
-      this.logger.debug("Opening port...");
+      // 打开端口
+      this.logger.debug("正在打开端口...");
       try {
         await this.port.open({ baudRate: ESP_ROM_BAUD });
         this.connected = true;
         this.currentBaudRate = ESP_ROM_BAUD;
       } catch (err) {
-        throw new Error(`Failed to open port: ${err}`);
+        throw new Error(`打开端口失败: ${err}`);
       }
 
-      // Verify port streams are available
+      // 验证端口流是否可用
       if (!this.port.readable || !this.port.writable) {
         throw new Error(
-          `Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`,
+          `打开后端口流不可用（可读: ${!!this.port.readable}，可写: ${!!this.port.writable}）`,
         );
       }
 
-      // Port is now open and ready - allow writes for initialization
+      // 端口现在打开并准备就绪 - 允许初始化写入
       this._isReconfiguring = false;
 
-      // Save chip info and flash size (no need to detect again)
+      // 保存芯片信息和闪存大小（无需再次检测）
       const savedChipFamily = this.chipFamily;
       const savedChipName = this.chipName;
       const savedChipRevision = this.chipRevision;
       const savedChipVariant = this.chipVariant;
       const savedFlashSize = this.flashSize;
 
-      // Reinitialize
+      // 重新初始化
       await this.hardReset(true);
 
       if (!this._parent) {
@@ -3900,21 +3803,21 @@ export class ESPLoader extends EventTarget {
       await this.flushSerialBuffers();
       await this.sync();
 
-      // Restore chip info
+      // 恢复芯片信息
       this.chipFamily = savedChipFamily;
       this.chipName = savedChipName;
       this.chipRevision = savedChipRevision;
       this.chipVariant = savedChipVariant;
       this.flashSize = savedFlashSize;
 
-      this.logger.debug(`Reconnect complete (chip: ${this.chipName})`);
+      this.logger.debug(`重新连接完成（芯片: ${this.chipName}）`);
 
-      // Verify port is ready
+      // 验证端口是否准备就绪
       if (!this.port.writable || !this.port.readable) {
-        throw new Error("Port not ready after reconnect");
+        throw new Error("重新连接后端口未准备就绪");
       }
 
-      // Power on flash for ESP32-P4 Rev 301 (must be done before loading stub)
+      // 为 ESP32-P4 Rev 301 开启闪存电源（必须在加载 stub 之前完成）
       if (
         this.chipFamily === CHIP_FAMILY_ESP32P4 &&
         this.chipRevision === 301
@@ -3922,30 +3825,30 @@ export class ESPLoader extends EventTarget {
         await this.powerOnFlash();
       }
 
-      // Load stub
+      // 加载 stub
       const stubLoader = await this.runStub(true);
-      this.logger.debug("Stub loaded");
+      this.logger.debug("Stub 已加载");
 
-      // Restore baudrate if it was changed
+      // 如果波特率已更改，则恢复
       if (savedBaudRate !== ESP_ROM_BAUD) {
         await stubLoader.setBaudrate(savedBaudRate);
 
-        // Verify port is still ready after baudrate change
+        // 验证波特率更改后端口是否仍准备就绪
         if (!this.port.writable || !this.port.readable) {
           throw new Error(
-            `Port not ready after baudrate change (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`,
+            `波特率更改后端口未准备就绪（可读: ${!!this.port.readable}，可写: ${!!this.port.writable}）`,
           );
         }
       }
 
-      // The stub is now running on the chip
-      // stubLoader has this instance as _parent, so all operations go through this
-      // We just need to mark this instance as running stub code
+      // Stub 现在在芯片上运行
+      // stubLoader 将此实例作为 _parent，因此所有操作都通过此实例
+      // 我们只需要将此实例标记为正在运行 stub 代码
       this.IS_STUB = true;
 
-      this.logger.debug("Reconnection successful");
+      this.logger.debug("重新连接成功");
     } catch (err) {
-      // Ensure flag is reset on error
+      // 确保在出错时重置标志
       this._isReconfiguring = false;
       throw err;
     }
@@ -3953,8 +3856,8 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name reconnectToBootloader
-   * Close and reopen the port, then reset ESP to bootloader mode
-   * This is needed after Improv or other operations that leave ESP in firmware mode
+   * 关闭并重新打开端口，然后将 ESP 复位到引导加载程序模式
+   * 在 Improv 或其他使 ESP 处于固件模式的操作后需要这样做
    */
   async reconnectToBootloader(): Promise<void> {
     if (this._parent) {
@@ -3963,81 +3866,81 @@ export class ESPLoader extends EventTarget {
     }
 
     try {
-      this.logger.log("Reconnecting to bootloader mode...");
+      this.logger.log("正在重新连接到引导加载程序模式...");
 
-      // Clear console mode flag when reconnecting to bootloader
+      // 在重新连接到引导加载程序时清除控制台模式标志
       this._consoleMode = false;
 
       this.connected = false;
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
 
-      // Wait for pending writes to complete
+      // 等待待处理的写入完成
       try {
         await this._writeChain;
       } catch (err) {
-        this.logger.debug(`Pending write error during reconnect: ${err}`);
+        this.logger.debug(`重新连接期间待处理写入错误: ${err}`);
       }
 
-      // Block new writes during port close/open
+      // 在端口关闭/打开期间阻止新写入
       this._isReconfiguring = true;
 
-      // Release persistent writer
+      // 释放持久写入器
       if (this._writer) {
         try {
           this._writer.releaseLock();
         } catch (err) {
-          this.logger.debug(`Writer release error during reconnect: ${err}`);
+          this.logger.debug(`重新连接期间写入器释放错误: ${err}`);
         }
         this._writer = undefined;
       }
 
-      // Cancel reader
+      // 取消读取器
       if (this._reader) {
         try {
           await this._reader.cancel();
         } catch (err) {
-          this.logger.debug(`Reader cancel error: ${err}`);
+          this.logger.debug(`读取器取消错误: ${err}`);
         }
         this._reader = undefined;
       }
 
-      // Close port
+      // 关闭端口
       try {
         await this.port.close();
-        this.logger.debug("Port closed");
+        this.logger.debug("端口已关闭");
       } catch (err) {
-        this.logger.debug(`Port close error: ${err}`);
+        this.logger.debug(`端口关闭错误: ${err}`);
       }
 
-      // Open the port
-      this.logger.debug("Opening port...");
+      // 打开端口
+      this.logger.debug("正在打开端口...");
       try {
         await this.port.open({ baudRate: ESP_ROM_BAUD });
         this.connected = true;
         this.currentBaudRate = ESP_ROM_BAUD;
       } catch (err) {
-        throw new Error(`Failed to open port: ${err}`);
+        throw new Error(`打开端口失败: ${err}`);
       }
 
-      // Verify port streams are available
+      // 验证端口流是否可用
       if (!this.port.readable || !this.port.writable) {
         throw new Error(
-          `Port streams not available after open (readable: ${!!this.port.readable}, writable: ${!!this.port.writable})`,
+          `打开后端口流不可用（可读: ${!!this.port.readable}，可写: ${!!this.port.writable}）`,
         );
       }
 
-      // Port is now open and ready - allow writes for initialization
+      // 端口现在打开并准备就绪 - 允许初始化写入
       this._isReconfiguring = false;
 
-      // Reset chip info and stub state
+      // 重置芯片信息和 stub 状态
       this.__chipFamily = undefined;
-      this.chipName = "Unknown Chip";
+      this.chipName = "未知芯片";
       this.chipRevision = null;
       this.chipVariant = null;
       this.IS_STUB = false;
 
-      // Start read loop
+      // 启动读取循环
       if (!this._parent) {
         this.__inputBuffer = [];
         this.__inputBufferReadIndex = 0;
@@ -4045,18 +3948,18 @@ export class ESPLoader extends EventTarget {
         this.readLoop();
       }
 
-      // Wait for readLoop to start
+      // 等待读取循环启动
       await sleep(100);
 
-      // Reset to bootloader mode using multiple strategies
+      // 使用多种策略复位到引导加载程序模式
       await this.connectWithResetStrategies();
 
-      // Detect chip type
+      // 检测芯片类型
       await this.detectChip();
 
-      this.logger.debug(`Reconnected to bootloader: ${this.chipName}`);
+      this.logger.debug(`已重新连接到引导加载程序: ${this.chipName}`);
     } catch (err) {
-      // Ensure flag is reset on error
+      // 确保在出错时重置标志
       this._isReconfiguring = false;
       throw err;
     }
@@ -4064,103 +3967,103 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name exitConsoleMode
-   * Exit console mode and return to bootloader
-   * For ESP32-S2, uses reconnectToBootloader which will trigger port change
-   * @returns true if manual reconnection is needed (ESP32-S2), false otherwise
+   * 退出控制台模式并返回引导加载程序
+   * 对于 ESP32-S2，使用 reconnectToBootloader，这将触发端口更改
+   * @returns 如果需要手动重新连接（ESP32-S2）则返回 true，否则返回 false
    */
   async exitConsoleMode(): Promise<boolean> {
     if (this._parent) {
       return await this._parent.exitConsoleMode();
     }
 
-    // Clear console mode flag
+    // 清除控制台模式标志
     this._consoleMode = false;
 
-    // Check if this is a USB-OTG device (ESP32-S2 or ESP32-P4)
+    // 检查是否为 USB-OTG 设备（ESP32-S2 或 ESP32-P4）
     const isUsbOtgChip =
       this.chipFamily === CHIP_FAMILY_ESP32S2 ||
       this.chipFamily === CHIP_FAMILY_ESP32P4;
 
-    // For USB-OTG chips: if _isUsbJtagOrOtg is undefined, try to detect it
-    // If detection fails or is undefined, assume USB-JTAG/OTG (conservative/safe path)
+    // 对于 USB-OTG 芯片：如果 _isUsbJtagOrOtg 未定义，尝试检测它
+    // 如果检测失败或未定义，假定为 USB-JTAG/OTG（保守/安全路径）
     let isUsbJtagOrOtg = this._isUsbJtagOrOtg;
     if (isUsbOtgChip && isUsbJtagOrOtg === undefined) {
       try {
         isUsbJtagOrOtg = await this.detectUsbConnectionType();
       } catch (err) {
         this.logger.debug(
-          `USB detection failed, assuming USB-JTAG/OTG for ${this.chipName}: ${err}`,
+          `USB 检测失败，假定 ${this.chipName} 为 USB-JTAG/OTG: ${err}`,
         );
-        isUsbJtagOrOtg = true; // Conservative fallback
+        isUsbJtagOrOtg = true; // 保守回退
       }
     }
 
     if (isUsbOtgChip && isUsbJtagOrOtg) {
-      // USB-OTG devices: Need to reset to bootloader, which will cause port change
-      this.logger.debug(`${this.chipName} USB: Resetting to bootloader mode`);
+      // USB-OTG 设备：需要复位到引导加载程序，这将导致端口更改
+      this.logger.debug(`${this.chipName} USB：正在复位到引导加载程序模式`);
 
-      // Perform hardware reset to bootloader (GPIO0=LOW)
-      // This will cause the port to change from CDC (firmware) to JTAG (bootloader)
+      // 执行硬件复位到引导加载程序（GPIO0=LOW）
+      // 这将导致端口从 CDC（固件）更改为 JTAG（引导加载程序）
       try {
         await this.hardResetClassic();
-        this.logger.debug("Reset to bootloader initiated");
+        this.logger.debug("已启动复位到引导加载程序");
       } catch (err) {
-        this.logger.debug(`Reset error: ${err}`);
+        this.logger.debug(`复位错误: ${err}`);
       }
 
-      // Wait for reset to complete and port to change
+      // 等待复位完成并端口更改
       await sleep(500);
 
       this.logger.debug(
-        `${this.chipName}: Port changed. Please select the bootloader port.`,
+        `${this.chipName}：端口已更改。请选择引导加载程序端口。`,
       );
 
-      // Dispatch event to signal port change
+      // 触发事件以通知端口更改
       this.dispatchEvent(
         new CustomEvent("usb-otg-port-change", {
           detail: {
             chipName: this.chipName,
-            message: `${this.chipName}: Port changed. Please select the bootloader port.`,
+            message: `${this.chipName}：端口已更改。请选择引导加载程序端口。`,
             reason: "exit-console-to-bootloader",
           },
         }),
       );
 
-      // Port will change, so return true to indicate manual reconnection needed
+      // 端口将更改，因此返回 true 表示需要手动重新连接
       return true;
     }
 
-    // For other devices, use standard reconnectToBootloader
+    // 对于其他设备，使用标准 reconnectToBootloader
     await this.reconnectToBootloader();
-    return false; // No manual reconnection needed
+    return false; // 无需手动重新连接
   }
 
   /**
    * @name isConsoleResetSupported
-   * Check if console reset is supported for this device
-   * ESP32-S2 USB-JTAG/CDC does not support reset in console mode
-   * because any reset causes USB port to be lost (hardware limitation)
+   * 检查此设备是否支持控制台复位
+   * ESP32-S2 USB-JTAG/CDC 不支持控制台模式复位，
+   * 因为任何复位都会导致 USB 端口丢失（硬件限制）
    */
   isConsoleResetSupported(): boolean {
     if (this._parent) {
       return this._parent.isConsoleResetSupported();
     }
 
-    // For ESP32-S2: if _isUsbJtagOrOtg is undefined, assume USB-JTAG/OTG (conservative)
-    // This means console reset is NOT supported (safer default)
+    // 对于 ESP32-S2：如果 _isUsbJtagOrOtg 未定义，假定为 USB-JTAG/OTG（保守）
+    // 这意味着控制台复位不受支持（更安全的默认值）
     const isS2UsbJtag =
       this.chipFamily === CHIP_FAMILY_ESP32S2 &&
       (this._isUsbJtagOrOtg === true || this._isUsbJtagOrOtg === undefined);
-    return !isS2UsbJtag; // Not supported for ESP32-S2 USB-JTAG/CDC
+    return !isS2UsbJtag; // 对于 ESP32-S2 USB-JTAG/CDC 不受支持
   }
 
   /**
    * @name resetInConsoleMode
-   * Reset device while in console mode (firmware mode)
+   * 在控制台模式（固件模式）下复位设备
    *
-   * NOTE: For ESP32-S2 USB-JTAG/CDC, ANY reset (hardware or software) causes
-   * the USB port to be lost because the device switches USB modes during reset.
-   * This is a hardware limitation - use isConsoleResetSupported() to check first.
+   * 注意：对于 ESP32-S2 USB-JTAG/CDC，任何复位（硬件或软件）都会导致
+   * USB 端口丢失，因为设备在复位期间会切换 USB 模式。
+   * 这是硬件限制 - 首先使用 isConsoleResetSupported() 检查。
    */
   async resetInConsoleMode(): Promise<void> {
     if (this._parent) {
@@ -4169,33 +4072,33 @@ export class ESPLoader extends EventTarget {
 
     if (!this.isConsoleResetSupported()) {
       this.logger.debug(
-        "Simple Console reset not supported for ESP32-S2 USB-JTAG/CDC - using exitConsoleMode to enter bootloader",
+        "ESP32-S2 USB-JTAG/CDC 不支持简单的控制台复位 - 使用 exitConsoleMode 进入引导加载程序",
       );
       await this.exitConsoleMode();
       this.logger.debug(
-        "S2 now in bootloader mode - caller must do syncAndWdtReset on new port, then reconnect console",
+        "S2 现在处于引导加载程序模式 - 调用方必须在新端口上执行 syncAndWdtReset，然后重新连接控制台",
       );
       return;
     }
 
-    // For other devices: Use standard firmware reset
+    // 对于其他设备：使用标准固件复位
     try {
-      this.logger.debug("Resetting device in console mode");
+      this.logger.debug("正在控制台模式复位设备");
       await this.hardResetToFirmware();
-      this.logger.debug("Device reset complete");
+      this.logger.debug("设备复位完成");
     } catch (err) {
-      this.logger.error(`Reset failed: ${err}`);
+      this.logger.error(`复位失败: ${err}`);
       throw err;
     }
   }
 
   /**
    * @name syncAndWdtReset
-   * Open a new bootloader port, sync with ROM (no stub, no reset strategies), and fire WDT reset.
-   * This is used for ESP32-S2 USB-OTG devices which require WDT reset to switch modes.
-   * After WDT reset the port will re-enumerate again.
-   * The user must select the new port after this method is called.
-   * @param newPort - The bootloader port selected by the user
+   * 打开一个新的引导加载程序端口，与 ROM 同步（无 stub，无复位策略），并触发 WDT 复位。
+   * 这用于需要 WDT 复位以切换模式的 ESP32-S2 USB-OTG 设备。
+   * WDT 复位后端口将再次重新枚举。
+   * 调用此方法后，用户必须选择新端口。
+   * @param newPort - 用户选择的引导加载程序端口
    */
   async syncAndWdtReset(newPort: SerialPort): Promise<void> {
     if (this._parent) {
@@ -4210,50 +4113,47 @@ export class ESPLoader extends EventTarget {
     this.__inputBufferReadIndex = 0;
     this.__totalBytesRead = 0;
 
-    this.logger.debug("Opening bootloader port at 115200...");
+    this.logger.debug("正在以 115200 波特率打开引导加载程序端口...");
     await this.port.open({ baudRate: ESP_ROM_BAUD });
     this.connected = true;
     this.currentBaudRate = ESP_ROM_BAUD;
 
-    // Start read loop
+    // 启动读取循环
     this.readLoop();
     await sleep(100);
 
-    // Sync with ROM only - no reset strategies, device is already in bootloader
-    this.logger.debug("Syncing with bootloader ROM...");
+    // 仅与 ROM 同步 - 无复位策略，设备已处于引导加载程序
+    this.logger.debug("正在与引导加载程序 ROM 同步...");
     await this.sync();
-    this.logger.debug("Bootloader sync OK, no stub");
+    this.logger.debug("引导加载程序同步正常，无 stub");
 
-    // Fire WDT reset → device boots into firmware
-    this.logger.debug("Firing WDT reset...");
+    // 触发 WDT 复位 → 设备启动到固件
+    this.logger.debug("正在触发 WDT 复位...");
     await this.rtcWdtResetChipSpecific();
-    this.logger.debug("WDT reset fired - device will boot to firmware");
+    this.logger.debug("WDT 复位已触发 - 设备将启动到固件");
   }
 
   /**
    * @name drainInputBuffer
-   * Actively drain the input buffer by reading data for a specified time.
-   * Simple approach for some drivers (especially CP210x on Windows) that have
-   * issues with buffer flushing.
+   * 通过在指定时间内读取数据来主动排空输入缓冲区。
+   * 对于某些驱动程序（尤其是 Windows 上的 CP210x）缓冲刷新有问题时，采用简单方法。
    *
-   * Based on esptool.py fix: https://github.com/espressif/esptool/commit/5338ea054e5099ac7be235c54034802ac8a43162
+   * 基于 esptool.py 的修复：https://github.com/espressif/esptool/commit/5338ea054e5099ac7be235c54034802ac8a43162
    *
-   * @param bufferingTime - Time in milliseconds to wait for the buffer to fill
+   * @param bufferingTime - 等待缓冲区填充的时间（毫秒）
    */
   async drainInputBuffer(bufferingTime = 200): Promise<void> {
-    // Wait for the buffer to fill
+    // 等待缓冲区填充
     await sleep(bufferingTime);
 
-    // Unsupported command response is sent 8 times and has
-    // 14 bytes length including delimiter SLIP_END (0xC0) bytes.
-    // At least part of it is read as a command response,
-    // but to be safe, read it all.
+    // 不支持的命令响应被发送 8 次，长度为 14 字节，包括分隔符 SLIP_END (0xC0) 字节。
+    // 至少有一部分作为命令响应被读取，但为了安全起见，读取所有。
     const bytesToDrain = 14 * 8;
     let drained = 0;
 
-    // Drain the buffer by reading available data
+    // 通过读取可用数据来排空缓冲区
     const drainStart = Date.now();
-    const drainTimeout = 100; // Short timeout for draining
+    const drainTimeout = 100; // 排空的短超时
 
     while (drained < bytesToDrain && Date.now() - drainStart < drainTimeout) {
       if (this._inputBufferAvailable > 0) {
@@ -4262,16 +4162,16 @@ export class ESPLoader extends EventTarget {
           drained++;
         }
       } else {
-        // Small sleep to avoid busy waiting
+        // 小睡以避免忙等待
         await sleep(1);
       }
     }
 
     if (drained > 0) {
-      this.logger.debug(`Drained ${drained} bytes from input buffer`);
+      this.logger.debug(`从输入缓冲区排空了 ${drained} 字节`);
     }
 
-    // Final clear of application buffer
+    // 最终清空应用程序缓冲区
     if (!this._parent) {
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
@@ -4280,39 +4180,39 @@ export class ESPLoader extends EventTarget {
 
   /**
    * @name flushSerialBuffers
-   * Flush any pending data in the TX and RX serial port buffers
-   * This clears both the application RX buffer and waits for hardware buffers to drain
+   * 刷新 TX 和 RX 串口缓冲区中任何待处理的数据
+   * 这会清空应用程序 RX 缓冲区并等待硬件缓冲区排空
    */
   async flushSerialBuffers(): Promise<void> {
-    // Clear application buffer
+    // 清空应用程序缓冲区
     if (!this._parent) {
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
     }
 
-    // Wait for any pending data
+    // 等待任何待处理的数据
     await sleep(SYNC_TIMEOUT);
 
-    // Final clear
+    // 最终清空
     if (!this._parent) {
       this.__inputBuffer = [];
       this.__inputBufferReadIndex = 0;
     }
 
-    this.logger.debug("Serial buffers flushed");
+    this.logger.debug("串行缓冲区已刷新");
   }
 
   /**
    * @name readFlash
-   * Read flash memory from the chip (only works with stub loader)
-   * @param addr - Address to read from
-   * @param size - Number of bytes to read
-   * @param onPacketReceived - Optional callback function called when packet is received
-   * @param options - Optional parameters for advanced control
-   *   - chunkSize: Amount of data to request from ESP in one command (bytes)
-   *   - blockSize: Size of each data block sent by ESP (bytes)
-   *   - maxInFlight: Maximum unacknowledged bytes (bytes)
-   * @returns Uint8Array containing the flash data
+   * 从芯片读取闪存（仅适用于 stub 加载程序）
+   * @param addr - 要读取的地址
+   * @param size - 要读取的字节数
+   * @param onPacketReceived - 收到数据包时调用的可选回调函数
+   * @param options - 用于高级控制的可选参数
+   *   - chunkSize: 一次命令中向 ESP 请求的数据量（字节）
+   *   - blockSize: ESP 发送的每个数据块的大小（字节）
+   *   - maxInFlight: 最大未确认字节数（字节）
+   * @returns 包含闪存数据的 Uint8Array
    */
   async readFlash(
     addr: number,
@@ -4329,54 +4229,48 @@ export class ESPLoader extends EventTarget {
     },
   ): Promise<Uint8Array> {
     if (!this.IS_STUB) {
-      throw new Error(
-        "Reading flash is only supported in stub mode. Please run runStub() first.",
-      );
+      throw new Error("读取闪存仅支持 stub 模式。请先运行 runStub()。");
     }
 
-    // Flush serial buffers before flash read operation
+    // 在闪存读取操作之前刷新串行缓冲区
     await this.flushSerialBuffers();
 
     this.logger.log(
-      `Reading ${size} bytes from flash at address 0x${addr.toString(16)}...`,
+      `正在从闪存地址 0x${addr.toString(16)} 读取 ${size} 字节...`,
     );
 
-    // Initialize adaptive speed multipliers for WebUSB devices
+    // 为 WebUSB 设备初始化自适应速度乘数
     if (this.isWebUSB()) {
       if (this._isCDCDevice) {
-        // CDC devices (CH343): Start with maximum, adaptive adjustment enabled
-        this._adaptiveBlockMultiplier = 8; // blockSize = 248 bytes
-        this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 248 bytes
+        // CDC 设备（CH343）：从最大值开始，启用自适应调整
+        this._adaptiveBlockMultiplier = 8; // blockSize = 248 字节
+        this._adaptiveMaxInFlightMultiplier = 8; // maxInFlight = 248 字节
         this._consecutiveSuccessfulChunks = 0;
         this.logger.debug(
-          `CDC device - Initialized: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`,
+          `CDC 设备 - 已初始化: blockMultiplier=${this._adaptiveBlockMultiplier}, maxInFlightMultiplier=${this._adaptiveMaxInFlightMultiplier}`,
         );
       } else {
-        // Non-CDC devices (CH340, CP2102): Fixed values, no adaptive adjustment
-        this._adaptiveBlockMultiplier = 1; // blockSize = 31 bytes (fixed)
-        this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 bytes (fixed)
+        // 非 CDC 设备（CH340、CP2102）：固定值，无自适应调整
+        this._adaptiveBlockMultiplier = 1; // blockSize = 31 字节（固定）
+        this._adaptiveMaxInFlightMultiplier = 1; // maxInFlight = 31 字节（固定）
         this._consecutiveSuccessfulChunks = 0;
-        this.logger.debug(
-          `Non-CDC device - Fixed values: blockSize=31, maxInFlight=31`,
-        );
+        this.logger.debug(`非 CDC 设备 - 固定值: blockSize=31, maxInFlight=31`);
       }
     }
 
-    // Chunk size: Amount of data to request from ESP in one command
-    // For WebUSB (Android), use smaller chunks to avoid timeouts and buffer issues
-    // For Web Serial (Desktop), use larger chunks for better performance
+    // 块大小：一次命令中向 ESP 请求的数据量
+    // 对于 WebUSB（安卓），使用较小的块以避免超时和缓冲区问题
+    // 对于 Web 串行（桌面），使用较大的块以获得更好的性能
     let CHUNK_SIZE: number;
     if (options?.chunkSize !== undefined) {
-      // Use user-provided chunkSize if in advanced mode
+      // 如果在高级模式下，使用用户提供的 chunkSize
       CHUNK_SIZE = options.chunkSize;
-      this.logger.log(
-        `Using custom chunk size: 0x${CHUNK_SIZE.toString(16)} bytes`,
-      );
+      this.logger.log(`使用自定义块大小: 0x${CHUNK_SIZE.toString(16)} 字节`);
     } else if (this.isWebUSB()) {
-      // WebUSB: Use smaller chunks to avoid SLIP timeout issues
-      CHUNK_SIZE = 0x4 * 0x1000; // 4KB = 16384 bytes
+      // WebUSB：使用较小的块以避免 SLIP 超时问题
+      CHUNK_SIZE = 0x4 * 0x1000; // 4KB = 16384 字节
     } else {
-      // Web Serial: Use larger chunks for better performance
+      // Web 串行：使用较大的块以获得更好的性能
       CHUNK_SIZE = 0x40 * 0x1000;
     }
 
@@ -4391,16 +4285,16 @@ export class ESPLoader extends EventTarget {
       const MAX_RETRIES = 5;
       let deepRecoveryAttempted = false;
 
-      // Retry loop for this chunk
+      // 此块的重试循环
       while (!chunkSuccess && retryCount <= MAX_RETRIES) {
         let resp = new Uint8Array(0);
-        let lastAckedLength = 0; // Track last acknowledged length
+        let lastAckedLength = 0; // 跟踪最后确认的长度
 
         try {
-          // Only log on first attempt or retries
+          // 仅在第一次尝试或重试时记录
           if (retryCount === 0) {
             this.logger.debug(
-              `Reading chunk at 0x${currentAddr.toString(16)}, size: 0x${chunkSize.toString(16)}`,
+              `正在读取地址 0x${currentAddr.toString(16)} 的块，大小: 0x${chunkSize.toString(16)}`,
             );
           }
 
@@ -4411,29 +4305,29 @@ export class ESPLoader extends EventTarget {
             options?.blockSize !== undefined &&
             options?.maxInFlight !== undefined
           ) {
-            // Use user-provided values if in advanced mode
+            // 如果在高级模式下，使用用户提供的值
             blockSize = options.blockSize;
             maxInFlight = options.maxInFlight;
             if (retryCount === 0) {
               this.logger.debug(
-                `Using custom parameters: blockSize=${blockSize}, maxInFlight=${maxInFlight}`,
+                `使用自定义参数: blockSize=${blockSize}, maxInFlight=${maxInFlight}`,
               );
             }
           } else if (this.isWebUSB()) {
-            // WebUSB (Android): All devices use adaptive speed
-            // All have maxTransferSize=64, baseBlockSize=31
+            // WebUSB（安卓）：所有设备都使用自适应速度
+            // 所有设备都有 maxTransferSize=64，baseBlockSize=31
             const maxTransferSize =
               (this.port as WebUSBSerialPort).maxTransferSize || 64;
-            const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
+            const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 字节
 
-            // Use current adaptive multipliers (initialized at start of readFlash)
+            // 使用当前的自适应乘数（在 readFlash 开始时初始化）
             blockSize = baseBlockSize * this._adaptiveBlockMultiplier;
             maxInFlight = baseBlockSize * this._adaptiveMaxInFlightMultiplier;
           } else {
-            // Web Serial (Desktop): Use multiples of 63 for consistency
+            // Web 串行（桌面）：使用 63 的倍数以保持一致性
             const base = 63;
-            blockSize = base * 65; // 63 * 65 = 4095 (close to 0x1000)
-            maxInFlight = base * 130; // 63 * 130 = 8190 (close to blockSize * 2)
+            blockSize = base * 65; // 63 * 65 = 4095（接近 0x1000）
+            maxInFlight = base * 130; // 63 * 130 = 8190（接近 blockSize * 2）
           }
 
           const pkt = pack(
@@ -4447,38 +4341,38 @@ export class ESPLoader extends EventTarget {
           const [res] = await this.checkCommand(ESP_READ_FLASH, pkt);
 
           if (res != 0) {
-            throw new Error("Failed to read memory: " + res);
+            throw new Error("读取内存失败: " + res);
           }
 
           while (resp.length < chunkSize) {
-            // Read a SLIP packet
+            // 读取一个 SLIP 包
             let packet: number[];
             try {
               packet = await this.readPacket(FLASH_READ_TIMEOUT);
             } catch (err) {
               if (err instanceof SlipReadError) {
                 this.logger.debug(
-                  `${err.message} at byte 0x${resp.length.toString(16)}`,
+                  `${err.message} 在字节 0x${resp.length.toString(16)} 处`,
                 );
 
-                // Send empty SLIP frame to abort the stub's read operation
-                // The stub expects 4 bytes (ACK), if we send less it will break out
+                // 发送空 SLIP 帧以中止 stub 的读取操作
+                // stub 期望 4 字节（ACK），如果我们发送更少，它将跳出
                 try {
-                  // Send SLIP frame with no data (just delimiters)
-                  const abortFrame = [this.SLIP_END, this.SLIP_END]; // Empty SLIP frame
+                  // 发送无数据的 SLIP 帧（仅分隔符）
+                  const abortFrame = [this.SLIP_END, this.SLIP_END]; // 空 SLIP 帧
                   await this.writeToStream(abortFrame);
-                  this.logger.debug(`Sent abort frame to stub`);
+                  this.logger.debug(`向 stub 发送了中止帧`);
 
-                  // Give stub time to process abort
+                  // 给 stub 处理中止的时间
                   await sleep(50);
                 } catch (abortErr) {
-                  this.logger.debug(`Abort frame error: ${abortErr}`);
+                  this.logger.debug(`中止帧错误: ${abortErr}`);
                 }
 
-                // Drain input buffer to clear any stale data
+                // 排空输入缓冲区以清除任何陈旧数据
                 await this.drainInputBuffer(200);
 
-                // If we've read all the data we need, break
+                // 如果已读取所有所需数据，则跳出
                 if (resp.length >= chunkSize) {
                   break;
                 }
@@ -4489,32 +4383,32 @@ export class ESPLoader extends EventTarget {
             if (packet && packet.length > 0) {
               const packetData = new Uint8Array(packet);
 
-              // Append to response
+              // 附加到响应
               const newResp = new Uint8Array(resp.length + packetData.length);
               newResp.set(resp);
               newResp.set(packetData, resp.length);
               resp = newResp;
 
-              // Send acknowledgment when we've received maxInFlight bytes
-              // The stub sends packets until (num_sent - num_acked) >= max_in_flight
-              // We MUST wait for all packets before sending ACK
+              // 当收到 maxInFlight 字节时发送确认
+              // stub 发送包直到 (num_sent - num_acked) >= max_in_flight
+              // 我们必须等待所有包再发送 ACK
               const shouldAck =
-                resp.length >= chunkSize || // End of chunk
-                resp.length >= lastAckedLength + maxInFlight; // Received all packets
+                resp.length >= chunkSize || // 块结束
+                resp.length >= lastAckedLength + maxInFlight; // 收到所有包
 
               if (shouldAck) {
                 const ackData = pack("<I", resp.length);
                 const slipEncodedAck = slipEncode(ackData);
                 await this.writeToStream(slipEncodedAck);
 
-                // Update lastAckedLength to current response length
-                // This ensures next ACK is sent at the right time
+                // 将 lastAckedLength 更新为当前响应长度
+                // 这确保下一次 ACK 在正确的时间发送
                 lastAckedLength = resp.length;
               }
             }
           }
 
-          // Chunk read successfully - append to all data
+          // 块读取成功 - 附加到所有数据
           const newAllData = new Uint8Array(allData.length + resp.length);
           newAllData.set(allData);
           newAllData.set(resp, allData.length);
@@ -4522,24 +4416,24 @@ export class ESPLoader extends EventTarget {
 
           chunkSuccess = true;
 
-          // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
-          // Non-CDC devices (CH340, CP2102) stay at fixed blockSize=31, maxInFlight=31
+          // 自适应速度调整：仅适用于 CDC 设备
+          // 非 CDC 设备（CH340、CP2102）保持固定 blockSize=31，maxInFlight=31
           if (this.isWebUSB() && this._isCDCDevice && retryCount === 0) {
             this._consecutiveSuccessfulChunks++;
 
-            // After 2 consecutive successful chunks, increase speed gradually
+            // 连续成功 2 个块后，逐渐提高速度
             if (this._consecutiveSuccessfulChunks >= 2) {
               const maxTransferSize =
                 (this.port as WebUSBSerialPort).maxTransferSize || 64;
-              const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 bytes
+              const baseBlockSize = Math.floor((maxTransferSize - 2) / 2); // 31 字节
 
-              // Maximum: blockSize=248 (8 * 31), maxInFlight=248 (8 * 31)
-              const MAX_BLOCK_MULTIPLIER = 8; // 248 bytes - tested stable
-              const MAX_INFLIGHT_MULTIPLIER = 8; // 248 bytes - tested stable
+              // 最大值：blockSize=248（8 * 31），maxInFlight=248（8 * 31）
+              const MAX_BLOCK_MULTIPLIER = 8; // 248 字节 - 经测试稳定
+              const MAX_INFLIGHT_MULTIPLIER = 8; // 248 字节 - 经测试稳定
 
               let adjusted = false;
 
-              // Increase blockSize first (up to 248), then maxInFlight
+              // 首先增加 blockSize（最大 248），然后增加 maxInFlight
               if (this._adaptiveBlockMultiplier < MAX_BLOCK_MULTIPLIER) {
                 this._adaptiveBlockMultiplier = Math.min(
                   this._adaptiveBlockMultiplier * 2,
@@ -4547,7 +4441,7 @@ export class ESPLoader extends EventTarget {
                 );
                 adjusted = true;
               }
-              // Once blockSize is at maximum, increase maxInFlight
+              // 一旦 blockSize 达到最大值，增加 maxInFlight
               else if (
                 this._adaptiveMaxInFlightMultiplier < MAX_INFLIGHT_MULTIPLIER
               ) {
@@ -4564,30 +4458,30 @@ export class ESPLoader extends EventTarget {
                 const newMaxInFlight =
                   baseBlockSize * this._adaptiveMaxInFlightMultiplier;
                 this.logger.debug(
-                  `Speed increased: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`,
+                  `速度提高: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`,
                 );
                 this._lastAdaptiveAdjustment = Date.now();
               }
 
-              // Reset counter
+              // 重置计数器
               this._consecutiveSuccessfulChunks = 0;
             }
           }
         } catch (err) {
           retryCount++;
 
-          // ADAPTIVE SPEED ADJUSTMENT: Only for CDC devices
-          // Non-CDC devices stay at fixed values
+          // 自适应速度调整：仅适用于 CDC 设备
+          // 非 CDC 设备保持固定值
           if (this.isWebUSB() && this._isCDCDevice && retryCount === 1) {
-            // Only reduce if we're above minimum
+            // 仅当我们高于最小值时才降低
             if (
               this._adaptiveBlockMultiplier > 1 ||
               this._adaptiveMaxInFlightMultiplier > 1
             ) {
-              // Reduce to minimum on error
-              this._adaptiveBlockMultiplier = 1; // 31 bytes (for CH343)
-              this._adaptiveMaxInFlightMultiplier = 1; // 31 bytes
-              this._consecutiveSuccessfulChunks = 0; // Reset success counter
+              // 出错时降至最小值
+              this._adaptiveBlockMultiplier = 1; // 31 字节（适用于 CH343）
+              this._adaptiveMaxInFlightMultiplier = 1; // 31 字节
+              this._consecutiveSuccessfulChunks = 0; // 重置成功计数器
 
               const maxTransferSize =
                 (this.port as WebUSBSerialPort).maxTransferSize || 64;
@@ -4598,64 +4492,62 @@ export class ESPLoader extends EventTarget {
                 baseBlockSize * this._adaptiveMaxInFlightMultiplier;
 
               this.logger.debug(
-                `Error at higher speed - reduced to minimum: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`,
+                `在较高速度下出错 - 降至最小值: blockSize=${newBlockSize}, maxInFlight=${newMaxInFlight}`,
               );
             } else {
-              // Already at minimum and still failing - this is a real error
+              // 已在最小值且仍然失败 - 这是真正的错误
               this.logger.debug(
-                `Error at minimum speed (blockSize=31, maxInFlight=31) - not a speed issue`,
+                `在最低速度下出错 (blockSize=31, maxInFlight=31) - 非速度问题`,
               );
             }
           }
 
-          // Check if it's a timeout error or SLIP error
+          // 检查是否为超时错误或 SLIP 错误
           if (err instanceof SlipReadError) {
             if (retryCount <= MAX_RETRIES) {
               this.logger.debug(
-                `Cleared buffer and retrying (attempt ${retryCount}/${MAX_RETRIES})...`,
+                `已清空缓冲区并重试（尝试 ${retryCount}/${MAX_RETRIES}）...`,
               );
-              // Continue to retry the same chunk (will send NEW read command)
+              // 继续重试相同的块（将发送新的读取命令）
             } else {
-              // All retries exhausted - attempt recovery by reloading stub
-              // IMPORTANT: Do NOT close port to keep ESP32 in bootloader mode
+              // 所有重试都已用尽 - 尝试通过重新加载 stub 进行恢复
+              // 重要：不要关闭端口以保持 ESP32 处于引导加载程序模式
               if (!deepRecoveryAttempted) {
                 deepRecoveryAttempted = true;
 
                 this.logger.log(
-                  `All retries exhausted at 0x${currentAddr.toString(16)}. Attempting recovery (close and reopen port)...`,
+                  `在地址 0x${currentAddr.toString(16)} 处所有重试都已用尽。正在尝试恢复（关闭并重新打开端口）...`,
                 );
 
                 try {
-                  // Reconnect will close port, reopen, and reload stub
+                  // 重新连接将关闭端口、重新打开并重新加载 stub
                   await this.reconnect();
 
-                  this.logger.log(
-                    "Deep recovery successful. Resuming read from current position...",
-                  );
+                  this.logger.log("深度恢复成功。从当前位置恢复读取...");
 
-                  // Reset retry counter to give it another chance after recovery
+                  // 重置重试计数器以在恢复后再次尝试
                   retryCount = 0;
                   continue;
                 } catch (recoveryErr) {
                   throw new Error(
-                    `Failed to read chunk at 0x${currentAddr.toString(16)} after ${MAX_RETRIES} retries and recovery failed: ${recoveryErr}`,
+                    `在地址 0x${currentAddr.toString(16)} 处读取块失败，经过 ${MAX_RETRIES} 次重试且恢复失败: ${recoveryErr}`,
                   );
                 }
               } else {
-                // Recovery already attempted, give up
+                // 已尝试恢复，放弃
                 throw new Error(
-                  `Failed to read chunk at 0x${currentAddr.toString(16)} after ${MAX_RETRIES} retries and recovery attempt`,
+                  `在地址 0x${currentAddr.toString(16)} 处读取块失败，经过 ${MAX_RETRIES} 次重试和恢复尝试`,
                 );
               }
             }
           } else {
-            // Non-SLIP error, don't retry
+            // 非 SLIP 错误，不重试
             throw err;
           }
         }
       }
 
-      // Update progress (use empty array since we already appended to allData)
+      // 更新进度（使用空数组，因为我们已经将数据附加到 allData）
       if (onPacketReceived) {
         onPacketReceived(new Uint8Array(chunkSize), allData.length, size);
       }
@@ -4664,7 +4556,7 @@ export class ESPLoader extends EventTarget {
       remainingSize -= chunkSize;
 
       this.logger.debug(
-        `Total progress: 0x${allData.length.toString(16)} from 0x${size.toString(16)} bytes`,
+        `总进度: 0x${allData.length.toString(16)} / 0x${size.toString(16)} 字节`,
       );
     }
 
@@ -4674,14 +4566,14 @@ export class ESPLoader extends EventTarget {
 
 class EspStubLoader extends ESPLoader {
   /*
-    The Stubloader has commands that run on the uploaded Stub Code in RAM
-    rather than built in commands.
+    Stub 加载器具有在 RAM 中上传的 Stub 代码上运行的命令，
+    而不是内置命令。
   */
   IS_STUB = true;
 
   /**
    * @name memBegin (592)
-   * Start downloading an application image to RAM
+   * 开始下载应用程序镜像到 RAM
    */
   async memBegin(
     size: number,
@@ -4691,7 +4583,7 @@ class EspStubLoader extends ESPLoader {
   ): Promise<[number, number[]]> {
     const stub = await getStubCode(this.chipFamily, this.chipRevision);
 
-    // Stub may be null for chips without stub support
+    // 对于不支持 stub 的芯片，stub 可能为 null
     if (stub === null) {
       return [0, []];
     }
@@ -4699,10 +4591,10 @@ class EspStubLoader extends ESPLoader {
     const load_start = offset;
     const load_end = offset + size;
     this.logger.debug(
-      `Load range: ${toHex(load_start, 8)}-${toHex(load_end, 8)}`,
+      `加载范围: ${toHex(load_start, 8)}-${toHex(load_end, 8)}`,
     );
     this.logger.debug(
-      `Stub data: ${toHex(stub.data_start, 8)}, len: ${stub.data.length}, text: ${toHex(stub.text_start, 8)}, len: ${stub.text.length}`,
+      `Stub 数据: ${toHex(stub.data_start, 8)}，长度: ${stub.data.length}，文本: ${toHex(stub.text_start, 8)}，长度: ${stub.text.length}`,
     );
     for (const [start, end] of [
       [stub.data_start, stub.data_start + stub.data.length],
@@ -4710,17 +4602,17 @@ class EspStubLoader extends ESPLoader {
     ]) {
       if (load_start < end && load_end > start) {
         throw new Error(
-          "Software loader is resident at " +
+          "软件加载程序驻留在 " +
             toHex(start, 8) +
             "-" +
             toHex(end, 8) +
-            ". " +
-            "Can't load binary at overlapping address range " +
+            "。 " +
+            "无法在重叠的地址范围 " +
             toHex(load_start, 8) +
             "-" +
             toHex(load_end, 8) +
-            ". " +
-            "Try changing the binary loading address.",
+            " 加载二进制文件。 " +
+            "请尝试更改二进制加载地址。",
         );
       }
     }
@@ -4729,7 +4621,7 @@ class EspStubLoader extends ESPLoader {
 
   /**
    * @name eraseFlash
-   * Erase entire flash chip
+   * 擦除整个闪存芯片
    */
   async eraseFlash() {
     await this.checkCommand(ESP_ERASE_FLASH, [], 0, CHIP_ERASE_TIMEOUT);
@@ -4737,47 +4629,47 @@ class EspStubLoader extends ESPLoader {
 
   /**
    * @name eraseRegion
-   * Erase a specific region of flash
+   * 擦除闪存的特定区域
    */
   async eraseRegion(offset: number, size: number) {
-    // Validate inputs
+    // 验证输入
     if (offset < 0) {
-      throw new Error(`Invalid offset: ${offset} (must be non-negative)`);
+      throw new Error(`无效的偏移量: ${offset}（必须为非负数）`);
     }
     if (size < 0) {
-      throw new Error(`Invalid size: ${size} (must be non-negative)`);
+      throw new Error(`无效的大小: ${size}（必须为非负数）`);
     }
 
-    // No-op for zero size
+    // 大小为零时无操作
     if (size === 0) {
-      this.logger.log("eraseRegion: size is 0, skipping erase");
+      this.logger.log("eraseRegion: 大小为 0，跳过擦除");
       return;
     }
 
-    // Check for sector alignment
+    // 检查扇区对齐
     if (offset % FLASH_SECTOR_SIZE !== 0) {
       throw new Error(
-        `Offset ${offset} (0x${offset.toString(16)}) is not aligned to flash sector size ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)})`,
+        `偏移量 ${offset} (0x${offset.toString(16)}) 未与闪存扇区大小 ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)}) 对齐`,
       );
     }
     if (size % FLASH_SECTOR_SIZE !== 0) {
       throw new Error(
-        `Size ${size} (0x${size.toString(16)}) is not aligned to flash sector size ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)})`,
+        `大小 ${size} (0x${size.toString(16)}) 未与闪存扇区大小 ${FLASH_SECTOR_SIZE} (0x${FLASH_SECTOR_SIZE.toString(16)}) 对齐`,
       );
     }
 
-    // Check for reasonable bounds (prevent wrapping in pack)
-    const maxValue = 0xffffffff; // 32-bit unsigned max
+    // 检查合理范围（防止在 pack 中溢出）
+    const maxValue = 0xffffffff; // 32 位无符号最大值
     if (offset > maxValue) {
-      throw new Error(`Offset ${offset} exceeds maximum value ${maxValue}`);
+      throw new Error(`偏移量 ${offset} 超过最大值 ${maxValue}`);
     }
     if (size > maxValue) {
-      throw new Error(`Size ${size} exceeds maximum value ${maxValue}`);
+      throw new Error(`大小 ${size} 超过最大值 ${maxValue}`);
     }
-    // Check for wrap-around
+    // 检查溢出
     if (offset + size > maxValue) {
       throw new Error(
-        `Region end (offset + size = ${offset + size}) exceeds maximum addressable range ${maxValue}`,
+        `区域结束（偏移量 + 大小 = ${offset + size}）超过最大可寻址范围 ${maxValue}`,
       );
     }
 

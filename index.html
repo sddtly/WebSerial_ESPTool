@@ -1,69 +1,69 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <title>WebSerial ESPTool</title>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <script>
-      // Redirect to HTTPS if HTTP is requested.
-      if (
-        window.location.hostname !== "localhost" &&
-        window.location.protocol === "http:"
-      ) {
-        window.location.href = "https:" + window.location.href.substring(5);
-      }
-    </script>
+<html lang="zh">
+<head>
+  <title>WebSerial ESP 工具</title>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script>
+    // 如果是 HTTP 请求，则重定向到 HTTPS。
+    if (
+      window.location.hostname !== "localhost" &&
+      window.location.protocol === "http:"
+    ) {
+      window.location.href = "https:" + window.location.href.substring(5);
+    }
+  </script>
 
-    <!-- import the web page's stylesheets along with the themes -->
-    <link rel="stylesheet" href="css/style.css" />
-    <link
-      rel="stylesheet"
-      href="css/light.css"
-      id="light"
-      class="alternate"
-      disabled
-    />
-    <link
-      rel="stylesheet"
-      href="css/dark.css"
-      id="dark"
-      class="alternate"
-      disabled
-    />
+  <!-- 导入网页样式表以及主题 -->
+  <link rel="stylesheet" href="css/style.css" />
+  <link
+    rel="stylesheet"
+    href="css/light.css"
+    id="light"
+    class="alternate"
+    disabled
+  />
+  <link
+    rel="stylesheet"
+    href="css/dark.css"
+    id="dark"
+    class="alternate"
+    disabled
+  />
 
-    <!-- import the webpage's javascript file -->
-    <script type="module">
-      window.esptoolPackage = import(
-        "./js/modules/esptool.js"
+  <!-- 导入网页的 JavaScript 文件 -->
+  <script type="module">
+    window.esptoolPackage = import(
+      "./js/modules/esptool.js"
       );
-    </script>
-    <script src="js/script.js" type="module" defer></script>
-  </head>
-  <body>
-    <header class="header">
-      <div class="header-content">
-        <button id="butConnect" type="button">Connect</button>
-        <label for="baudRate">Baud</label>
-        <select id="baudRate"></select>
-        
-        <label for="showlog">Show Log</label>
-        <div class="onoffswitch">
-          <input
-            type="checkbox"
-            name="showlog"
-            class="onoffswitch-checkbox"
-            id="showlog"
-          />
-          <label class="onoffswitch-label" for="showlog">
-            <span class="onoffswitch-inner"></span>
-            <span class="onoffswitch-switch"></span>
-          </label>
-        </div>
+  </script>
+  <script src="js/script.js" type="module" defer></script>
+</head>
+<body>
+<header class="header">
+  <div class="header-content">
+    <button id="butConnect" type="button">连接</button>
+    <label for="baudRate">波特率</label>
+    <select id="baudRate"></select>
 
-        <span class="log-controls">
-          <label for="autoscroll">Autoscroll</label>
+    <label for="showlog">显示日志</label>
+    <div class="onoffswitch">
+      <input
+        type="checkbox"
+        name="showlog"
+        class="onoffswitch-checkbox"
+        id="showlog"
+      />
+      <label class="onoffswitch-label" for="showlog">
+        <span class="onoffswitch-inner"></span>
+        <span class="onoffswitch-switch"></span>
+      </label>
+    </div>
+
+    <span class="log-controls">
+          <label for="autoscroll">自动滚动</label>
           <div class="onoffswitch">
             <input
               type="checkbox"
@@ -77,266 +77,286 @@
             </label>
           </div>
           <button id="butClear" type="button" class="small-btn">
-            Clear
+            清除
           </button>
         </span>
 
-        <label for="debugmode">Debug</label>
-        <div class="onoffswitch">
-          <input
-            type="checkbox"
-            name="debugmode"
-            class="onoffswitch-checkbox"
-            id="debugmode"
-          />
-          <label class="onoffswitch-label" for="debugmode">
-            <span class="onoffswitch-inner"></span>
-            <span class="onoffswitch-switch"></span>
-          </label>
-        </div>
-
-        <label for="darkmode">Dark</label>
-        <div class="onoffswitch">
-          <input
-            type="checkbox"
-            name="darkmode"
-            class="onoffswitch-checkbox"
-            id="darkmode"
-          />
-          <label class="onoffswitch-label" for="darkmode">
-            <span class="onoffswitch-inner"></span>
-            <span class="onoffswitch-switch"></span>
-          </label>
-        </div>
-        
-        <div class="separator"></div>
-        <div class="title">WebSerial ESPTool</div>
-      </div>
-    </header>
-    <main class="main">
-      <div id="notSupported" class="notSupported">
-        Sorry, <b>Web Serial</b> or <b>WebUSB</b> is not supported on this device. 
-        Make sure you're running Chrome 89 or later (Desktop) or Chrome 61+ (Android with USB OTG).
-      </div>
-      <div id="app">
-        <div id="commands">
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="upload">
-            <label
-              >Offset: 0x
-              <input class="offset" type="text" value="0" />
-            </label>
-            <label class="firmware">
-              <input type="file" accept=".bin" />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="17"
-                viewbox="0 0 20 17"
-              >
-                <path
-                  d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
-                />
-              </svg>
-              <span>Choose a file&hellip;</span>
-            </label>
-            <div class="progress-bar hidden"><div></div></div>
-          </div>
-          <div class="buttons">
-            <button id="butErase" type="button" disabled="disabled">
-              Erase
-            </button>
-            <button id="butProgram" type="button" disabled="disabled">
-              Program
-            </button>
-          </div>
-          <div class="partition-table">
-            <button id="butReadPartitions" type="button" disabled="disabled">
-              Read Partition Table
-            </button>
-            <div class="progress-bar hidden" id="partitionProgress">
-              <div></div>
-            </div>
-            <div id="partitionList" class="hidden"></div>
-          </div>
-          <div class="read-flash">
-            <div class="progress-bar hidden" id="readProgress"><div></div></div>
-            <div class="read-flash-inputs">
-              <label>
-                Address: 0x
-                <input id="readOffset" type="text" value="0" />
-              </label>
-              <label>
-                Size: 0x
-                <input id="readSize" type="text" value="1000" />
-              </label>
-              <button id="butReadFlash" type="button" disabled="disabled">
-                Read Flash
-              </button>
-            </div>
-          </div>
-        </div>
-        <div id="log"></div>
-      </div>
-    </main>
-
-    <!-- ESP32-S2 Reconnect Modal -->
-    <div id="esp32s2Modal" class="modal hidden">
-      <div class="modal-content">
-        <h2>ESP32-S2 has switched to USB CDC mode</h2>
-        <p>Please click the button below to select the new serial port.</p>
-        <button id="butReconnectS2" type="button" class="modal-button">
-          Select New Port
-        </button>
-      </div>
+    <label for="debugmode">调试</label>
+    <div class="onoffswitch">
+      <input
+        type="checkbox"
+        name="debugmode"
+        class="onoffswitch-checkbox"
+        id="debugmode"
+      />
+      <label class="onoffswitch-label" for="debugmode">
+        <span class="onoffswitch-inner"></span>
+        <span class="onoffswitch-switch"></span>
+      </label>
     </div>
 
-    <footer class="footer"></footer>
-  </body>
+    <label for="darkmode">暗色</label>
+    <div class="onoffswitch">
+      <input
+        type="checkbox"
+        name="darkmode"
+        class="onoffswitch-checkbox"
+        id="darkmode"
+      />
+      <label class="onoffswitch-label" for="darkmode">
+        <span class="onoffswitch-inner"></span>
+        <span class="onoffswitch-switch"></span>
+      </label>
+    </div>
+
+    <div class="separator"></div>
+    <div class="title">WebSerial ESP 工具</div>
+  </div>
+</header>
+<main class="main">
+  <div id="notSupported" class="notSupported">
+    抱歉，您的设备不支持 <b>Web 串口</b> 或 <b>WebUSB</b>。请确保您使用的是 Chrome 89 或更高版本（桌面版）或 Chrome 61+（支持 USB OTG 的 Android 设备）。
+  </div>
+  <div id="app">
+    <div id="commands">
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="upload">
+        <label
+        >偏移量：0x
+          <input class="offset" type="text" value="0" />
+        </label>
+        <label class="firmware">
+          <input type="file" accept=".bin" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="17"
+            viewbox="0 0 20 17"
+          >
+            <path
+              d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"
+            />
+          </svg>
+          <span>选择文件&hellip;</span>
+        </label>
+        <div class="progress-bar hidden"><div></div></div>
+      </div>
+      <div class="buttons">
+        <button id="butErase" type="button" disabled="disabled">
+          擦除
+        </button>
+        <button id="butProgram" type="button" disabled="disabled">
+          烧录
+        </button>
+      </div>
+      <div class="partition-table">
+        <button id="butReadPartitions" type="button" disabled="disabled">
+          读取分区表
+        </button>
+        <div class="progress-bar hidden" id="partitionProgress">
+          <div></div>
+        </div>
+        <div id="partitionList" class="hidden"></div>
+      </div>
+      <div class="read-flash">
+        <div class="progress-bar hidden" id="readProgress"><div></div></div>
+        <div class="read-flash-inputs">
+          <label>
+            地址：0x
+            <input id="readOffset" type="text" value="0" />
+          </label>
+          <label>
+            大小：0x
+            <input id="readSize" type="text" value="1000" />
+          </label>
+          <button id="butReadFlash" type="button" disabled="disabled">
+            读取闪存
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="log"></div>
+  </div>
+</main>
+
+<!-- ESP32-S2 重连模态框 -->
+<div id="esp32s2Modal" class="modal hidden">
+  <div class="modal-content">
+    <h2>ESP32-S2 已切换到 USB CDC 模式</h2>
+    <p>请点击下方按钮选择新的串口。</p>
+    <button id="butReconnectS2" type="button" class="modal-button">
+      选择新端口
+    </button>
+  </div>
+</div>
+
+<footer class="footer"></footer>
+</body>
 </html>

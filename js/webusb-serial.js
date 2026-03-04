@@ -1,13 +1,12 @@
 /**
- * WebUSBSerial - Web Serial API-like wrapper for WebUSB
- * Provides a familiar interface for serial communication over USB on Android
- * 
- * This enables to work on Android devices where Web Serial API
- * is not available but WebUSB is supported.
- * 
- * IMPORTANT: For Android compatibility, this class uses smaller transfer sizes
- * to prevent SLIP synchronization errors. The maxTransferSize is set to 64 bytes
- * (or endpoint packetSize if smaller) to ensure SLIP frames don't get split.
+ * WebUSBSerial - 为 WebUSB 封装的 Web Serial API 类似接口
+ * 在 Android 上通过 WebUSB 提供熟悉的串行通信接口
+ *
+ * 这使得在 Android 设备上可以工作，因为 Web Serial API 不可用但支持 WebUSB
+ *
+ * 重要提示：为了 Android 兼容性，本类使用较小的传输块大小
+ * 以防止 SLIP 同步错误。maxTransferSize 设置为 64 字节
+ * （如果端点数据包大小更小则使用该值）以确保 SLIP 帧不会被拆分。
  */
 class WebUSBSerial {
     constructor(logger = null) {
@@ -24,41 +23,41 @@ class WebUSBSerial {
             'close': [],
             'disconnect': []
         };
-        // Transfer size optimized for WebUSB on Android
-        // CRITICAL: blockSize = (maxTransferSize - 2) / 2
-        // Set to 64 bytes for maximum compatibility with all USB-Serial adapters
-        // With 64 bytes: blockSize = (64-2)/2 = 31 bytes per SLIP packet
+        // 针对 Android 上的 WebUSB 优化的传输块大小
+        // 关键：blockSize = (maxTransferSize - 2) / 2
+        // 设置为 64 字节以获得与所有 USB 串行适配器的最大兼容性
+        // 使用 64 字节时：blockSize = (64-2)/2 = 每个 SLIP 数据包 31 字节
         this.maxTransferSize = 64;
-        
-        // Flag to indicate this is WebUSB (used by esptool to adjust block sizes)
+
+        // 标志指示这是 WebUSB（esptool 使用它来调整块大小）
         this.isWebUSB = true;
-        
-        // Command queue for serializing control transfers (critical for CP2102)
+
+        // 用于序列化控制传输的命令队列（对 CP2102 至关重要）
         this._commandQueue = Promise.resolve();
-        
-        // Track current DTR/RTS state to preserve unspecified signals
+
+        // 跟踪当前 DTR/RTS 状态，以保持未指定的信号
         this._currentDTR = false;
         this._currentRTS = false;
-        
-        // Logger function (defaults to console.log if not provided)
+
+        // 日志函数（如果未提供，默认为 console.log）
         this._log = logger || ((...args) => console.log(...args));
     }
 
     /**
-     * Request USB device (mimics navigator.serial.requestPort())
-     * @param {function|object} logger - Logger function or object with log() method
-     * @param {boolean} forceNew - If true, forces selection of a new device (ignores already paired devices)
+     * 请求 USB 设备（模拟 navigator.serial.requestPort()）
+     * @param {function|object} logger - 具有 log() 方法的日志函数或对象
+     * @param {boolean} forceNew - 如果为 true，则强制选择新设备（忽略已配对的设备）
      */
     static async requestPort(logger = null, forceNew = false) {
         const filters = [
-            { vendorId: 0x303A }, // Espressif
+            { vendorId: 0x303A }, // 乐鑫
             { vendorId: 0x0403 }, // FTDI
             { vendorId: 0x1A86 }, // CH340
             { vendorId: 0x10C4 }, // CP210x
             { vendorId: 0x067B }  // PL2303
         ];
 
-        // Helper to call logger (supports both function and object with log() method)
+        // 调用日志的辅助函数（支持函数和具有 log() 方法的对象）
         const log = (msg) => {
             if (!logger) return;
             if (typeof logger === 'function') {
@@ -70,28 +69,28 @@ class WebUSBSerial {
 
         let device;
 
-        // If forceNew is false, try to reuse a previously authorized device
+        // 如果 forceNew 为 false，尝试重用之前授权的设备
         if (!forceNew && navigator.usb && navigator.usb.getDevices) {
             try {
                 const devices = await navigator.usb.getDevices();
-                // Find a device that matches our filters
-                device = devices.find(d => 
-                    filters.some(f => f.vendorId === d.vendorId)
+                // 查找与我们的过滤器匹配的设备
+                device = devices.find(d =>
+                  filters.some(f => f.vendorId === d.vendorId)
                 );
-                
+
                 if (device) {
-                    log('[WebUSB] Reusing previously authorized device');
+                    log('[WebUSB] 重用之前授权的设备');
                 }
             } catch (err) {
-                // Can't use this._log in static method, use console as fallback
-                console.warn('[WebUSB] Failed to get previously authorized devices:', err);
+                // 在静态方法中不能使用 this._log，回退使用 console
+                console.warn('[WebUSB] 获取之前授权的设备失败：', err);
             }
         }
 
-        // If no device found or forceNew is true, request a new device
+        // 如果没有找到设备或 forceNew 为 true，请求新设备
         if (!device) {
             if (!navigator.usb) {
-                throw new Error('WebUSB not available');
+                throw new Error('WebUSB 不可用');
             }
             device = await navigator.usb.requestDevice({ filters });
         }
@@ -102,56 +101,56 @@ class WebUSBSerial {
     }
 
     /**
-     * Open the USB device (mimics port.open())
+     * 打开 USB 设备（模拟 port.open()）
      */
     async open(options = {}) {
         if (!this.device) {
-            throw new Error('No device selected');
+            throw new Error('未选择设备');
         }
 
         const baudRate = options.baudRate || 115200;
 
-        // If device is already opened, we need to close and reopen it
-        // This is critical for ESP32-S2
+        // 如果设备已经打开，我们需要关闭并重新打开它
+        // 这对 ESP32-S2 至关重要
         if (this.device.opened) {
-            
+
             try {
-                // Release all interfaces
+                // 释放所有接口
                 if (this.interfaceNumber !== null) {
                     try { await this.device.releaseInterface(this.interfaceNumber); } catch (e) {}
                 }
                 if (this.controlInterface !== null && this.controlInterface !== this.interfaceNumber) {
                     try { await this.device.releaseInterface(this.controlInterface); } catch (e) {}
                 }
-                
-                // Close the device
+
+                // 关闭设备
                 await this.device.close();
-                
-                // Reset interface numbers so they get re-scanned
+
+                // 重置接口编号以便重新扫描
                 this.interfaceNumber = null;
                 this.controlInterface = null;
                 this.endpointIn = null;
                 this.endpointOut = null;
-                
-                // Wait a bit for device to settle
+
+                // 等待设备稳定
                 await new Promise(resolve => setTimeout(resolve, 100));
             } catch (e) {
-                this._log('[WebUSB] Error during close:', e.message);
-            }
-        }
-        
-        if (this.device.opened) {
-            try { await this.device.close(); } catch (e) { 
-                this._log('[WebUSB] Error closing device:', e.message);
+                this._log('[WebUSB] 关闭期间错误：', e.message);
             }
         }
 
-        try { 
-            if (this.device.reset) { 
-                await this.device.reset(); 
-            } 
-        } catch (e) { 
-//            this._log('[WebUSB] Device reset failed:', e.message);
+        if (this.device.opened) {
+            try { await this.device.close(); } catch (e) {
+                this._log('[WebUSB] 关闭设备时错误：', e.message);
+            }
+        }
+
+        try {
+            if (this.device.reset) {
+                await this.device.reset();
+            }
+        } catch (e) {
+//            this._log('[WebUSB] 设备重置失败：', e.message);
         }
 
         const attemptOpenAndClaim = async () => {
@@ -165,7 +164,7 @@ class WebUSBSerial {
 
             const config = this.device.configuration;
 
-            // Try to claim CDC control interface first (helps on Android/CH34x)
+            // 首先尝试声明 CDC 控制接口（有助于 Android/CH34x）
             const preControlIface = config.interfaces.find(i => i.alternates && i.alternates[0] && i.alternates[0].interfaceClass === 0x02);
             if (preControlIface) {
                 try {
@@ -173,14 +172,14 @@ class WebUSBSerial {
                     try { await this.device.selectAlternateInterface(preControlIface.interfaceNumber, 0); } catch (e) { }
                     this.controlInterface = preControlIface.interfaceNumber;
                 } catch (e) {
-                    this._log(`[WebUSB] Could not pre-claim CDC control iface: ${e.message}`);
+                    this._log(`[WebUSB] 无法预先声明 CDC 控制接口：${e.message}`);
                 }
             }
 
-            // Find bulk IN/OUT interface (prefer CDC data class)
+            // 查找批量 IN/OUT 接口（首选 CDC 数据类）
             const candidates = [];
             for (const iface of config.interfaces) {
-                // Check all alternates, not just alternates[0]
+                // 检查所有备选，而不仅仅是 alternates[0]
                 for (let altIndex = 0; altIndex < iface.alternates.length; altIndex++) {
                     const alt = iface.alternates[altIndex];
                     let hasIn = false, hasOut = false;
@@ -190,32 +189,32 @@ class WebUSBSerial {
                     }
                     if (hasIn && hasOut) {
                         let score = 2;
-                        if (alt.interfaceClass === 0x0a) score = 0; // CDC data first
-                        else if (alt.interfaceClass === 0xff) score = 1; // vendor-specific next
+                        if (alt.interfaceClass === 0x0a) score = 0; // CDC 数据优先
+                        else if (alt.interfaceClass === 0xff) score = 1; // 供应商特定次之
                         candidates.push({ iface, altIndex, alt, score });
-                        break; // Found suitable alternate for this interface
+                        break; // 为此接口找到合适的备选
                     }
                 }
             }
 
             if (!candidates.length) {
-                throw new Error('No suitable USB interface found');
+                throw new Error('未找到合适的 USB 接口');
             }
 
             candidates.sort((a, b) => a.score - b.score);
             let lastErr = null;
             for (const cand of candidates) {
                 try {
-                    // CORRECT ORDER per WebUSB spec: claimInterface FIRST, then selectAlternateInterface
+                    // 根据 WebUSB 规范的正确顺序：先 claimInterface，然后 selectAlternateInterface
                     await this.device.claimInterface(cand.iface.interfaceNumber);
-                    try { 
-                        await this.device.selectAlternateInterface(cand.iface.interfaceNumber, cand.altIndex); 
+                    try {
+                        await this.device.selectAlternateInterface(cand.iface.interfaceNumber, cand.altIndex);
                     } catch (e) {
-                        this._log(`[WebUSB] selectAlternateInterface failed: ${e.message}`);
+                        this._log(`[WebUSB] selectAlternateInterface 失败：${e.message}`);
                     }
                     this.interfaceNumber = cand.iface.interfaceNumber;
 
-                    // Use the alternate that was found to have bulk endpoints
+                    // 使用找到的具有批量端点的备选
                     for (const ep of cand.alt.endpoints) {
                         if (ep.type === 'bulk' && ep.direction === 'in') {
                             this.endpointIn = ep.endpointNumber;
@@ -224,52 +223,52 @@ class WebUSBSerial {
                         }
                     }
 
-                    // Validate that both endpoints were found
+                    // 验证是否找到两个端点
                     if (this.endpointIn == null || this.endpointOut == null) {
-                        throw new Error(`Missing bulk endpoints (in=${this.endpointIn}, out=${this.endpointOut})`);
+                        throw new Error(`缺少批量端点（in=${this.endpointIn}，out=${this.endpointOut}）`);
                     }
 
-                    // Use endpoint packet size for transfer length (Android prefers max-packet)
+                    // 使用端点数据包大小作为传输长度（Android 偏好最大数据包）
                     try {
                         const inEp = cand.alt.endpoints.find(ep => ep.type === 'bulk' && ep.direction === 'in');
                         if (inEp && inEp.packetSize) {
-                            // Don't limit by packetSize - use our optimized value
+                            // 不要用 packetSize 限制 - 使用我们优化的值
                         } else {
-                            this._log(`[WebUSB] No packetSize found, keeping maxTransferSize=${this.maxTransferSize}`);
+                            this._log(`[WebUSB] 未找到 packetSize，保持 maxTransferSize=${this.maxTransferSize}`);
                         }
                     } catch (e) {
-                        // Suppress packetSize check error - not critical
+                        // 抑制 packetSize 检查错误 - 不重要
                     }
 
                     return config;
                 } catch (claimErr) {
                     lastErr = claimErr;
-                    // Suppress claim failed message - this is expected when trying multiple interfaces
+                    // 抑制声明失败消息 - 这在尝试多个接口时是预期的
                 }
             }
 
-            throw lastErr || new Error('Unable to claim any USB interface');
+            throw lastErr || new Error('无法声明任何 USB 接口');
         };
 
         let config;
         try {
             config = await attemptOpenAndClaim();
         } catch (err) {
-            this._log('[WebUSB] open/claim failed, retrying after reset:', err.message);
+            this._log('[WebUSB] 打开/声明失败，重置后重试：', err.message);
             try { if (this.device.reset) { await this.device.reset(); } } catch (e) { }
             try { await this.device.close(); } catch (e) { }
             try {
                 config = await attemptOpenAndClaim();
             } catch (err2) {
-                throw new Error(`Unable to claim USB interface: ${err2.message}`);
+                throw new Error(`无法声明 USB 接口：${err2.message}`);
             }
         }
 
-        // Claim control interface if not already claimed
+        // 如果控制接口尚未声明，则声明它
         if (this.controlInterface == null) {
             const controlIface = config.interfaces.find(i =>
-                i.alternates[0].interfaceClass === 0x02 &&
-                i.interfaceNumber !== this.interfaceNumber
+              i.alternates[0].interfaceClass === 0x02 &&
+              i.interfaceNumber !== this.interfaceNumber
             );
 
             if (controlIface) {
@@ -285,10 +284,10 @@ class WebUSBSerial {
             }
         }
 
-        // CP2102-specific initialization sequence (must be in this exact order!)
+        // CP2102 特定的初始化序列（必须严格按照此顺序！）
         if (this.device.vendorId === 0x10c4) {
             try {
-                // Step 1: Enable UART interface
+                // 步骤 1：启用 UART 接口
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
@@ -297,30 +296,30 @@ class WebUSBSerial {
                     index: 0x00
                 });
 
-                // Step 2: Set line control (8N1: 8 data bits, no parity, 1 stop bit)
+                // 步骤 2：设置线路控制（8N1：8 数据位，无奇偶校验，1 停止位）
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x03, // SET_LINE_CTL
-                    value: 0x0800, // 8 data bits, no parity, 1 stop bit
+                    value: 0x0800, // 8 数据位，无奇偶校验，1 停止位
                     index: 0x00
                 });
 
-                // Step 3: Set DTR/RTS signals (vendor-specific for CP2102)
+                // 步骤 3：设置 DTR/RTS 信号（CP2102 的供应商特定）
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x07, // SET_MHS
-                    value: 0x03 | 0x0100 | 0x0200, // DTR=1, RTS=1 with masks
+                    value: 0x03 | 0x0100 | 0x0200, // DTR=1，RTS=1 带掩码
                     index: 0x00
                 });
 
-                // Step 4: Set baudrate (vendor-specific for CP2102)
-                // Use IFC_SET_BAUDRATE (0x1E) with direct 32-bit baudrate value
+                // 步骤 4：设置波特率（CP2102 的供应商特定）
+                // 使用 IFC_SET_BAUDRATE (0x1E) 直接传递 32 位波特率值
                 const baudrateBuffer = new ArrayBuffer(4);
                 const baudrateView = new DataView(baudrateBuffer);
-                baudrateView.setUint32(0, baudRate, true); // little-endian
-                
+                baudrateView.setUint32(0, baudRate, true); // 小端序
+
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'interface',
@@ -329,45 +328,45 @@ class WebUSBSerial {
                     index: 0
                 }, baudrateBuffer);
             } catch (e) {
-                this._log('[WebUSB CP2102] Initialization error:', e.message);
+                this._log('[WebUSB CP2102] 初始化错误：', e.message);
             }
         }
-        // FTDI-specific initialization sequence
+        // FTDI 特定的初始化序列
         else if (this.device.vendorId === 0x0403) {
             try {
-                // Step 1: Reset device
+                // 步骤 1：重置设备
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x00, // SIO_RESET
-                    value: 0x00,   // Reset
+                    value: 0x00,   // 重置
                     index: 0x00
                 });
 
-                // Step 2: Set flow control to none
+                // 步骤 2：设置流控为无
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x02, // SIO_SET_FLOW_CTRL
-                    value: 0x00,   // No flow control
+                    value: 0x00,   // 无流控
                     index: 0x00
                 });
 
-                // Step 3: Set data characteristics (8N1)
+                // 步骤 3：设置数据特性（8N1）
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x04, // SIO_SET_DATA
-                    value: 0x0008, // 8 data bits, no parity, 1 stop bit
+                    value: 0x0008, // 8 数据位，无奇偶校验，1 停止位
                     index: 0x00
                 });
 
-                // Step 4: Set baudrate
+                // 步骤 4：设置波特率
                 const baseClock = 3000000; // 48MHz / 16
                 let divisor = baseClock / baudRate;
                 const integerPart = Math.floor(divisor);
                 const fractionalPart = divisor - integerPart;
-                
+
                 let subInteger;
                 if (fractionalPart < 0.0625) subInteger = 0;
                 else if (fractionalPart < 0.1875) subInteger = 1;
@@ -377,10 +376,10 @@ class WebUSBSerial {
                 else if (fractionalPart < 0.6875) subInteger = 5;
                 else if (fractionalPart < 0.8125) subInteger = 6;
                 else subInteger = 7;
-                
+
                 const value = (integerPart & 0xFF) | ((subInteger & 0x07) << 14) | (((integerPart >> 8) & 0x3F) << 8);
                 const index = (integerPart >> 14) & 0x03;
-                
+
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
@@ -389,50 +388,50 @@ class WebUSBSerial {
                     index: index
                 });
 
-                // Step 5: Set DTR/RTS (modem control)
+                // 步骤 5：设置 DTR/RTS（调制解调器控制）
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x01, // SIO_MODEM_CTRL
-                    value: 0x0303, // DTR=1, RTS=1
+                    value: 0x0303, // DTR=1，RTS=1
                     index: 0x00
                 });
             } catch (e) {
-                this._log('[WebUSB FTDI] Initialization error:', e.message);
+                this._log('[WebUSB FTDI] 初始化错误：', e.message);
             }
         }
-        // CH340-specific initialization (VID: 0x1a86, but not CH343 PID: 0x55d3)
+        // CH340 特定的初始化（VID：0x1a86，但不是 CH343 PID：0x55d3）
         else if (this.device.vendorId === 0x1a86 && this.device.productId !== 0x55d3) {
             try {
-                // Step 1: Initialize CH340
+                // 步骤 1：初始化 CH340
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
-                    request: 0xA1, // CH340 INIT
+                    request: 0xA1, // CH340 初始化
                     value: 0x0000,
                     index: 0x0000
                 });
 
-                // Step 2: Set baudrate
+                // 步骤 2：设置波特率
                 const CH341_BAUDBASE_FACTOR = 1532620800;
                 const CH341_BAUDBASE_DIVMAX = 3;
-                
+
                 let factor = Math.floor(CH341_BAUDBASE_FACTOR / baudRate);
                 let divisor = CH341_BAUDBASE_DIVMAX;
-                
+
                 while (factor > 0xfff0 && divisor > 0) {
                     factor >>= 3;
                     divisor--;
                 }
-                
+
                 if (factor > 0xfff0) {
-                    throw new Error(`Baudrate ${baudRate} not supported by CH340`);
+                    throw new Error(`CH340 不支持波特率 ${baudRate}`);
                 }
-                
+
                 factor = 0x10000 - factor;
                 const a = (factor & 0xff00) | divisor;
                 const b = factor & 0xff;
-                
+
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
@@ -440,7 +439,7 @@ class WebUSBSerial {
                     value: 0x1312,
                     index: a
                 });
-                
+
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
@@ -449,28 +448,28 @@ class WebUSBSerial {
                     index: b
                 });
 
-                // Step 3: Set handshake (DTR/RTS)
+                // 步骤 3：设置握手（DTR/RTS）
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
-                    request: 0xA4, // CH340 SET_HANDSHAKE
-                    value: (~((1 << 5) | (1 << 6))) & 0xffff, // DTR=1, RTS=1 (inverted), masked to 16-bit
+                    request: 0xA4, // CH340 设置握手
+                    value: (~((1 << 5) | (1 << 6))) & 0xffff, // DTR=1，RTS=1（反向），掩码为 16 位
                     index: 0x0000
                 });
             } catch (e) {
-                this._log('[WebUSB CH340] Initialization error:', e.message);
+                this._log('[WebUSB CH340] 初始化错误：', e.message);
             }
         } else {
-            // Standard CDC/ACM initialization for other chips
+            // 其他芯片的标准 CDC/ACM 初始化
             try {
                 const lineCoding = new Uint8Array([
                     baudRate & 0xFF,
                     (baudRate >> 8) & 0xFF,
                     (baudRate >> 16) & 0xFF,
                     (baudRate >> 24) & 0xFF,
-                    0x00, // 1 stop bit
-                    0x00, // No parity
-                    0x08  // 8 data bits
+                    0x00, // 1 停止位
+                    0x00, // 无奇偶校验
+                    0x08  // 8 数据位
                 ]);
 
                 await this.device.controlTransferOut({
@@ -481,36 +480,36 @@ class WebUSBSerial {
                     index: this.controlInterface || 0
                 }, lineCoding);
             } catch (e) {
-                this._log('Could not set line coding:', e.message);
+                this._log('无法设置线路编码：', e.message);
             }
 
-            // Initialize DTR/RTS to idle state (both HIGH/asserted)
+            // 将 DTR/RTS 初始化为空闲状态（两者均为 HIGH/有效）
             try {
                 await this.device.controlTransferOut({
                     requestType: 'class',
                     recipient: 'interface',
                     request: 0x22, // SET_CONTROL_LINE_STATE
-                    value: 0x03, // DTR=1, RTS=1 (both asserted)
+                    value: 0x03, // DTR=1，RTS=1（两者均有效）
                     index: this.controlInterface || 0
                 });
             } catch (e) {
-                this._log('Could not set control lines:', e.message);
+                this._log('无法设置控制线：', e.message);
             }
         }
-        
-        // Create streams only if they don't exist yet
+
+        // 仅在尚不存在流时创建流
         if (!this.readableStream || !this.writableStream) {
             this._createStreams();
         } else {
-            // Streams exist, but make sure read loop is running
+            // 流存在，但确保读取循环正在运行
             if (!this._readLoopRunning) {
                 this._readLoopRunning = true;
-                // Note: ReadableStream can't be restarted, we need to recreate it
+                // 注意：ReadableStream 无法重新启动，需要重新创建
                 this._createStreams();
             }
         }
 
-        // Setup disconnect handler only once
+        // 仅设置一次断开处理程序
         if (!this._usbDisconnectHandler) {
             this._usbDisconnectHandler = (event) => {
                 if (event.device === this.device) {
@@ -523,7 +522,7 @@ class WebUSBSerial {
     }
 
     /**
-     * Close the device (mimics port.close())
+     * 关闭设备（模拟 port.close()）
      */
     async close() {
         this._cleanup();
@@ -538,15 +537,15 @@ class WebUSBSerial {
                 await this.device.close();
             } catch (e) {
                 if (!e.message || !e.message.includes('disconnected')) {
-                    this._log('Error closing device:', e.message || e);
+                    this._log('关闭设备时错误：', e.message || e);
                 }
             }
-            // Keep device reference for potential reconfiguration
+            // 保留设备引用以备可能的重新配置
         }
     }
 
     /**
-     * Disconnect and clear device reference (for final cleanup)
+     * 断开连接并清除设备引用（用于最终清理）
      */
     async disconnect() {
         await this.close();
@@ -554,21 +553,21 @@ class WebUSBSerial {
     }
 
     /**
-     * Get optimal block size for flash read operations
+     * 获取闪存读取操作的最佳块大小
      * (maxTransferSize - 2) / 2
-     * This accounts for SLIP overhead and escape sequences
-     * @returns {number} Optimal block size in bytes
+     * 这考虑了 SLIP 开销和转义序列
+     * @returns {number} 最佳块大小（字节）
      */
     getOptimalReadBlockSize() {
-        // Formula for WebUSB:
+        // WebUSB 的公式：
         // blockSize = (maxTransferSize - 2) / 2
-        // -2 for SLIP frame delimiters (0xC0 at start/end)
-        // /2 because worst case every byte could be escaped (0xDB 0xDC or 0xDB 0xDD)
+        // -2 用于 SLIP 帧定界符（开头和结尾的 0xC0）
+        // /2 因为最坏情况下每个字节都可能被转义（0xDB 0xDC 或 0xDB 0xDD）
         return Math.floor((this.maxTransferSize - 2) / 2);
     }
 
     /**
-     * Get device info (mimics port.getInfo())
+     * 获取设备信息（模拟 port.getInfo()）
      */
     getInfo() {
         if (!this.device) {
@@ -581,54 +580,54 @@ class WebUSBSerial {
     }
 
     /**
-     * Set DTR/RTS signals (mimics port.setSignals())
-     * CRITICAL: Commands are serialized via queue for CP2102 compatibility
-     * Supports both CDC/ACM (CH343) and Vendor-Specific (CP2102, CH340)
+     * 设置 DTR/RTS 信号（模拟 port.setSignals()）
+     * 关键：通过队列序列化命令以实现 CP2102 兼容性
+     * 支持 CDC/ACM（CH343）和供应商特定（CP2102，CH340）
      */
     async setSignals(signals) {
-        // Serialize all control transfers through a queue
-        // This is CRITICAL for CP2102 - parallel commands cause hangs
+        // 通过队列序列化所有控制传输
+        // 这对 CP2102 至关重要 - 并行命令会导致挂起
         this._commandQueue = this._commandQueue.then(async () => {
             if (!this.device) {
-                throw new Error('Device not open');
+                throw new Error('设备未打开');
             }
 
             const vid = this.device.vendorId;
             const pid = this.device.productId;
 
-            // Detect chip type and use appropriate control request
-            // CP2102 (Silicon Labs VID: 0x10c4)
+            // 检测芯片类型并使用适当的控制请求
+            // CP2102（Silicon Labs VID：0x10c4）
             if (vid === 0x10c4) {
                 return await this._setSignalsCP2102(signals);
             }
-            // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
+            // CH340（WCH VID：0x1a86，但不是 CH343 PID：0x55d3）
             else if (vid === 0x1a86 && pid !== 0x55d3) {
                 return await this._setSignalsCH340(signals);
             }
-            // CDC/ACM (CH343, Native USB, etc.)
+            // CDC/ACM（CH343，原生 USB 等）
             else {
                 return await this._setSignalsCDC(signals);
             }
         }).catch(err => {
-            this._log('[WebUSB] setSignals error:', err);
+            this._log('[WebUSB] setSignals 错误：', err);
             throw err;
         });
-        
+
         return this._commandQueue;
     }
 
     /**
-     * Set signals using CDC/ACM standard (for CH343, Native USB)
+     * 使用 CDC/ACM 标准设置信号（用于 CH343，原生 USB）
      */
     async _setSignalsCDC(signals) {
-        // Preserve current state for unspecified signals (Web Serial semantics)
+        // 保留未指定信号的当前状态（Web Serial 语义）
         const dtr = signals.dataTerminalReady !== undefined ? signals.dataTerminalReady : this._currentDTR;
         const rts = signals.requestToSend !== undefined ? signals.requestToSend : this._currentRTS;
-        
-        // Update tracked state
+
+        // 更新跟踪的状态
         this._currentDTR = dtr;
         this._currentRTS = rts;
-        
+
         let value = 0;
         value |= dtr ? 1 : 0;
         value |= rts ? 2 : 0;
@@ -645,70 +644,70 @@ class WebUSBSerial {
             await new Promise(resolve => setTimeout(resolve, 50));
             return result;
         } catch (e) {
-            this._log(`[WebUSB CDC] Failed to set signals: ${e.message}`);
+            this._log(`[WebUSB CDC] 设置信号失败：${e.message}`);
             throw e;
         }
     }
 
     /**
-     * Set signals for CP2102 (Silicon Labs vendor-specific)
+     * 为 CP2102 设置信号（Silicon Labs 供应商特定）
      */
     async _setSignalsCP2102(signals) {
-        // CP2102 uses vendor-specific request 0x07 (SET_MHS)
-        // Bit 0: DTR, Bit 1: RTS, Bit 8-9: DTR/RTS mask
-        
-        // Preserve current state for unspecified signals (Web Serial semantics)
+        // CP2102 使用供应商特定请求 0x07 (SET_MHS)
+        // 位 0：DTR，位 1：RTS，位 8-9：DTR/RTS 掩码
+
+        // 保留未指定信号的当前状态（Web Serial 语义）
         const dtr = signals.dataTerminalReady !== undefined ? signals.dataTerminalReady : this._currentDTR;
         const rts = signals.requestToSend !== undefined ? signals.requestToSend : this._currentRTS;
-        
-        // Update tracked state
+
+        // 更新跟踪的状态
         this._currentDTR = dtr;
         this._currentRTS = rts;
-        
-        // Build value with mask bits for both signals
+
+        // 为两个信号构建带掩码位的值
         let value = 0;
-        value |= (dtr ? 1 : 0) | 0x100; // DTR + mask
-        value |= (rts ? 2 : 0) | 0x200; // RTS + mask
+        value |= (dtr ? 1 : 0) | 0x100; // DTR + 掩码
+        value |= (rts ? 2 : 0) | 0x200; // RTS + 掩码
 
         try {
             const result = await this.device.controlTransferOut({
                 requestType: 'vendor',
                 recipient: 'device',
-                request: 0x07, // SET_MHS (Modem Handshaking)
+                request: 0x07, // SET_MHS（调制解调器握手）
                 value: value,
-                index: 0x00  // CP2102 always uses index 0
+                index: 0x00  // CP2102 始终使用索引 0
             });
 
             await new Promise(resolve => setTimeout(resolve, 50));
             return result;
         } catch (e) {
-            this._log(`[WebUSB CP2102] Failed to set signals: ${e.message}`);
+            this._log(`[WebUSB CP2102] 设置信号失败：${e.message}`);
             throw e;
         }
     }
 
     /**
-     * Set signals for CH340 (WCH vendor-specific)
+     * 为 CH340 设置信号（WCH 供应商特定）
      */
     async _setSignalsCH340(signals) {
-        // Preserve current state for unspecified signals (Web Serial semantics)
+        // 保留未指定信号的当前状态（Web Serial 语义）
         const dtr = signals.dataTerminalReady !== undefined ? signals.dataTerminalReady : this._currentDTR;
         const rts = signals.requestToSend !== undefined ? signals.requestToSend : this._currentRTS;
-        
-        // Update tracked state
+
+        // 更新跟踪的状态
         this._currentDTR = dtr;
         this._currentRTS = rts;
-        
-        // CH340 uses vendor-specific request 0xA4
-        // Bit 5: DTR, Bit 6: RTS (inverted logic!)
-        // Calculate value with bitwise NOT and mask to unsigned 16-bit
+
+        // CH340 使用供应商特定请求 0xA4
+        // 位 5：DTR，位 6：RTS（反向逻辑！）
+        // 使用按位非并掩码为无符号 16 位来计算值
         const value = (~((dtr ? 1 << 5 : 0) | (rts ? 1 << 6 : 0))) & 0xffff;
 
         try {
             const result = await this.device.controlTransferOut({
                 requestType: 'vendor',
                 recipient: 'device',
-                request: 0xA4, // CH340 control request
+                request: 0xA4, // CH340 控制请求
                 value: value,
                 index: 0
             });
@@ -716,43 +715,43 @@ class WebUSBSerial {
             await new Promise(resolve => setTimeout(resolve, 50));
             return result;
         } catch (e) {
-            this._log(`[WebUSB CH340] Failed to set signals: ${e.message}`);
+            this._log(`[WebUSB CH340] 设置信号失败：${e.message}`);
             throw e;
         }
     }
 
     /**
-     * Change baudrate after port is already open
-     * This is needed for ESP stub loader which changes baudrate after uploading stub
-     * NOTE: Only needed for vendor-specific chips (CP2102, CH340, FTDI)
-     * CDC devices (CH343, ESP32-S2/S3/C3 Native USB) handle baudrate automatically
+     * 端口打开后更改波特率
+     * 这对于 ESP 存根加载器在上传存根后更改波特率是必需的
+     * 注意：仅适用于供应商特定芯片（CP2102、CH340、FTDI）
+     * CDC 设备（CH343、ESP32-S2/S3/C3 原生 USB）自动处理波特率
      */
     async setBaudRate(baudRate) {
         if (!this.device) {
-            throw new Error('Device not open');
+            throw new Error('设备未打开');
         }
 
         const vid = this.device.vendorId;
         const pid = this.device.productId;
 
-//        this._log(`[WebUSB] Changing baudrate to ${baudRate}...`);
+//        this._log(`[WebUSB] 将波特率更改为 ${baudRate}...`);
 
-        // FTDI (VID: 0x0403)
+        // FTDI（VID：0x0403）
         if (vid === 0x0403) {
-            // FTDI baudrate calculation
-            // Modern FTDI chips (FT232R, FT2232, etc.): BaseClock = 48MHz
+            // FTDI 波特率计算
+            // 现代 FTDI 芯片（FT232R、FT2232 等）：BaseClock = 48MHz
             // BaudDivisor = (48000000 / 16) / BaudRate = 3000000 / BaudRate
-            // Divisor encoding: 16-bit value with sub-integer divisor support
-            // Sub-integer divisor: 0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875
-            
+            // 除数编码：带子整数除数支持的 16 位值
+            // 子整数除数：0、0.125、0.25、0.375、0.5、0.625、0.75、0.875
+
             const baseClock = 3000000; // 48MHz / 16
             let divisor = baseClock / baudRate;
-            
-            // Extract integer and fractional parts
+
+            // 提取整数和小数部分
             const integerPart = Math.floor(divisor);
             const fractionalPart = divisor - integerPart;
-            
-            // Encode sub-integer divisor (0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)
+
+            // 编码子整数除数（0、0.125、0.25、0.375、0.5、0.625、0.75、0.875）
             let subInteger;
             if (fractionalPart < 0.0625) subInteger = 0;      // 0.0
             else if (fractionalPart < 0.1875) subInteger = 1; // 0.125
@@ -762,15 +761,15 @@ class WebUSBSerial {
             else if (fractionalPart < 0.6875) subInteger = 5; // 0.625
             else if (fractionalPart < 0.8125) subInteger = 6; // 0.75
             else subInteger = 7;                               // 0.875
-            
-            // Encode divisor value for FTDI
-            // Low byte: integer part (bits 0-7)
-            // High byte: (integer part >> 8) | (sub-integer << 6)
-            const value = (integerPart & 0xFF) | ((subInteger & 0x07) << 14) | (((integerPart >> 8) & 0x3F) << 8);
-            const index = (integerPart >> 14) & 0x03; // Upper 2 bits of integer part
 
-//            this._log(`[WebUSB FTDI] Setting baudrate ${baudRate} (divisor=${divisor.toFixed(3)}, value=0x${value.toString(16)}, index=0x${index.toString(16)})...`);
-            
+            // 为 FTDI 编码除数值
+            // 低字节：整数部分（位 0-7）
+            // 高字节：（整数部分 >> 8）|（子整数 << 6）
+            const value = (integerPart & 0xFF) | ((subInteger & 0x07) << 14) | (((integerPart >> 8) & 0x3F) << 8);
+            const index = (integerPart >> 14) & 0x03; // 整数部分的高 2 位
+
+//            this._log(`[WebUSB FTDI] 设置波特率 ${baudRate}（除数=${divisor.toFixed(3)}，value=0x${value.toString(16)}，index=0x${index.toString(16)}）...`);
+
             await this.device.controlTransferOut({
                 requestType: 'vendor',
                 recipient: 'device',
@@ -778,20 +777,20 @@ class WebUSBSerial {
                 value: value,
                 index: index
             });
-            
-//            this._log('[WebUSB FTDI] Baudrate changed successfully');
+
+//            this._log('[WebUSB FTDI] 波特率更改成功');
         }
-        // CP2102 (Silicon Labs VID: 0x10c4)
+        // CP2102（Silicon Labs VID：0x10c4）
         else if (vid === 0x10c4) {
-            // CP210x baudrate encoding (from Silicon Labs AN571)
-            // For CP2102/CP2103: Use direct 32-bit baudrate value
-            // Request: IFC_SET_BAUDRATE (0x1E)
-            
-            // Encode baudrate as 32-bit little-endian value
+            // CP210x 波特率编码（来自 Silicon Labs AN571）
+            // 对于 CP2102/CP2103：使用直接的 32 位波特率值
+            // 请求：IFC_SET_BAUDRATE (0x1E)
+
+            // 将波特率编码为 32 位小端值
             const baudrateBuffer = new ArrayBuffer(4);
             const baudrateView = new DataView(baudrateBuffer);
-            baudrateView.setUint32(0, baudRate, true); // little-endian
-            
+            baudrateView.setUint32(0, baudRate, true); // 小端序
+
             await this.device.controlTransferOut({
                 requestType: 'vendor',
                 recipient: 'interface',
@@ -800,52 +799,52 @@ class WebUSBSerial {
                 index: 0
             }, baudrateBuffer);
         }
-        // CH340 (WCH VID: 0x1a86, but not CH343 PID: 0x55d3)
+        // CH340（WCH VID：0x1a86，但不是 CH343 PID：0x55d3）
         else if (vid === 0x1a86 && pid !== 0x55d3) {
-            // CH340 baudrate calculation (from Linux kernel driver)
+            // CH340 波特率计算（来自 Linux 内核驱动程序）
             const CH341_BAUDBASE_FACTOR = 1532620800;
             const CH341_BAUDBASE_DIVMAX = 3;
-            
+
             let factor = Math.floor(CH341_BAUDBASE_FACTOR / baudRate);
             let divisor = CH341_BAUDBASE_DIVMAX;
-            
-            // Reduce factor if too large
+
+            // 如果因子太大则减小
             while (factor > 0xfff0 && divisor > 0) {
                 factor >>= 3;
                 divisor--;
             }
-            
+
             if (factor > 0xfff0) {
-                throw new Error(`Baudrate ${baudRate} not supported by CH340`);
+                throw new Error(`CH340 不支持波特率 ${baudRate}`);
             }
-            
+
             factor = 0x10000 - factor;
             const a = (factor & 0xff00) | divisor;
             const b = factor & 0xff;
 
-            // CH340 uses request 0x9A to set baudrate
+            // CH340 使用请求 0x9A 设置波特率
             await this.device.controlTransferOut({
                 requestType: 'vendor',
                 recipient: 'device',
-                request: 0x9A, // CH340 SET_BAUDRATE
-                value: 0x1312, // Fixed value for baudrate setting
+                request: 0x9A, // CH340 设置波特率
+                value: 0x1312, // 用于设置波特率的固定值
                 index: a
             });
-            
-            // Second control transfer with b value
+
+            // 第二个带 b 值的控制传输
             await this.device.controlTransferOut({
                 requestType: 'vendor',
                 recipient: 'device',
                 request: 0x9A,
-                value: 0x0f2c, // Fixed value
+                value: 0x0f2c, // 固定值
                 index: b
             });
 
         }
-        // CDC devices (CH343, ESP32 Native USB) - no action needed in setBaudRate()
-        // They are handled by close/reopen in esp_loader.ts
+        // CDC 设备（CH343、ESP32 原生 USB）- setBaudRate() 中无需操作
+        // 它们在 esp_loader.ts 中通过关闭/重新打开处理
 
-        // Wait for baudrate change to take effect
+        // 等待波特率更改生效
         await new Promise(resolve => setTimeout(resolve, 50));
     }
 
@@ -858,26 +857,26 @@ class WebUSBSerial {
     }
 
     _createStreams() {
-        // ReadableStream for incoming data
+        // 用于传入数据的 ReadableStream
         this.readableStream = new ReadableStream({
             start: async (controller) => {
                 this._readLoopRunning = true;
                 let streamErrored = false;
 
-                // Validate endpoints before starting read loop
+                // 在启动读取循环之前验证端点
                 if (this.endpointIn == null) {
-                    controller.error(new Error('Bulk IN endpoint not configured'));
+                    controller.error(new Error('未配置批量 IN 端点'));
                     return;
                 }
 
                 try {
                     while (this._readLoopRunning && this.device) {
                         try {
-                            // CRITICAL: Check backpressure before reading more data
-                            // If desiredSize is 0 or negative, the consumer can't keep up
-                            // Wait for the consumer to drain the buffer before reading more
+                            // 关键：在读取更多数据之前检查背压
+                            // 如果 desiredSize 为 0 或负数，则消费者无法跟上
+                            // 等待消费者排空缓冲区后再读取更多数据
                             if (controller.desiredSize !== null && controller.desiredSize <= 0) {
-                                // Consumer is backlogged - wait before reading more
+                                // 消费者积压 - 等待后再读取更多
                                 await new Promise(r => setTimeout(r, 10));
                                 continue;
                             }
@@ -886,8 +885,8 @@ class WebUSBSerial {
 
                             if (result.status === 'ok') {
                                 controller.enqueue(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
-                                // Small delay to allow consumer to process data
-                                // This prevents overwhelming the TextDecoderStream on Android
+                                // 少量延迟让消费者处理数据
+                                // 这防止在 Android 上压倒 TextDecoderStream
                                 await new Promise(r => setTimeout(r, 1));
                                 continue;
                             } else if (result.status === 'stall') {
@@ -895,21 +894,21 @@ class WebUSBSerial {
                                 await new Promise(r => setTimeout(r, 1));
                                 continue;
                             }
-                            // Only wait if no data was received
+                            // 如果未收到数据，才等待
                             await new Promise(r => setTimeout(r, 1));
                         } catch (error) {
                             if (error.message && (error.message.includes('device unavailable') ||
-                                error.message.includes('device has been lost') ||
-                                error.message.includes('device was disconnected') ||
-                                error.message.includes('No device selected'))) {
+                              error.message.includes('device has been lost') ||
+                              error.message.includes('device was disconnected') ||
+                              error.message.includes('No device selected'))) {
                                 break;
                             }
                             if (error.message && (error.message.includes('transfer was cancelled') ||
-                                error.message.includes('transfer error has occurred'))) {
+                              error.message.includes('transfer error has occurred'))) {
                                 continue;
                             }
-                            this._log('USB read error:', error.message);
-                            // Wait a bit after error before retrying
+                            this._log('USB 读取错误：', error.message);
+                            // 错误后等待片刻再重试
                             await new Promise(r => setTimeout(r, 10));
                         }
                     }
@@ -917,7 +916,7 @@ class WebUSBSerial {
                     streamErrored = true;
                     controller.error(error);
                 } finally {
-                    // Only close if stream didn't error
+                    // 仅当流未出错时才关闭
                     if (!streamErrored) {
                         controller.close();
                     }
@@ -928,14 +927,14 @@ class WebUSBSerial {
             }
         });
 
-        // WritableStream for outgoing data
+        // 用于传出数据的 WritableStream
         this.writableStream = new WritableStream({
             write: async (chunk) => {
                 if (!this.device) {
-                    throw new Error('Device not open');
+                    throw new Error('设备未打开');
                 }
                 if (this.endpointOut == null) {
-                    throw new Error('Bulk OUT endpoint not configured');
+                    throw new Error('未配置批量 OUT 端点');
                 }
                 await this.device.transferOut(this.endpointOut, chunk);
             }
@@ -943,19 +942,19 @@ class WebUSBSerial {
     }
 
     /**
-     * Recreate streams without closing the port
-     * Useful after hardware reset or when switching to console mode
-     * This stops the current read loop and creates fresh streams
+     * 在不关闭端口的情况下重新创建流
+     * 在硬件重置或切换到控制台模式后很有用
+     * 这会停止当前读取循环并创建新流
      */
     recreateStreams() {
-        // Stop the current read loop
+        // 停止当前读取循环
         this._readLoopRunning = false;
-        
-        // Wait a bit for the read loop to finish
-        // The ReadableStream will close itself when _readLoopRunning becomes false
+
+        // 等待片刻让读取循环完成
+        // 当 _readLoopRunning 变为 false 时，ReadableStream 将自行关闭
         return new Promise((resolve) => {
             setTimeout(() => {
-                // Create new streams
+                // 创建新流
                 this._createStreams();
                 resolve();
             }, 100);
@@ -976,7 +975,7 @@ class WebUSBSerial {
             try {
                 listener();
             } catch (e) {
-                this._log(`Error in ${type} event listener:`, e);
+                this._log(`${type} 事件监听器错误：`, e);
             }
         });
     }
@@ -998,55 +997,55 @@ class WebUSBSerial {
 }
 
 /**
- * Unified port request function that tries WebUSB first on Android, Web Serial on Desktop
- * This provides seamless support for both desktop (Web Serial) and Android (WebUSB)
- * @param {boolean} forceNew - If true, forces selection of a new device (ignores already paired devices)
+ * 统一的端口请求函数，在 Android 上尝试 WebUSB，在桌面上尝试 Web Serial
+ * 这为桌面（Web Serial）和 Android（WebUSB）提供无缝支持
+ * @param {boolean} forceNew - 如果为 true，则强制选择新设备（忽略已配对的设备）
  */
 async function requestSerialPort(forceNew = false) {
-    // Detect if we're on Android
+    // 检测是否在 Android 上
     const isAndroid = /Android/i.test(navigator.userAgent);
     const hasSerial = 'serial' in navigator;
     const hasUSB = 'usb' in navigator;
-    
-    console.log(`[requestSerialPort] Platform: ${isAndroid ? 'Android' : 'Desktop'}, Web Serial: ${hasSerial}, WebUSB: ${hasUSB}`);
-    
-    // On Android, prefer WebUSB (Web Serial doesn't work properly)
+
+    console.log(`[requestSerialPort] 平台：${isAndroid ? 'Android' : '桌面'}，Web Serial：${hasSerial}，WebUSB：${hasUSB}`);
+
+    // 在 Android 上，优先使用 WebUSB（Web Serial 无法正常工作）
     if (isAndroid && hasUSB) {
         try {
             return await WebUSBSerial.requestPort(null, forceNew);
         } catch (err) {
-            console.log('WebUSB failed, trying Web Serial...', err.message);
+            console.log('WebUSB 失败，尝试 Web Serial...', err.message);
         }
     }
-    
-    // Try Web Serial API (preferred on desktop)
+
+    // 尝试 Web Serial API（桌面首选）
     if (hasSerial) {
         try {
-            // Web Serial API doesn't support device reuse in the same way
-            // It always shows the picker, but the browser remembers permissions
+            // Web Serial API 不支持以相同方式重用设备
+            // 它始终显示选择器，但浏览器记住权限
             return await navigator.serial.requestPort();
         } catch (err) {
-            console.log('Web Serial not available or cancelled, trying WebUSB...');
+            console.log('Web Serial 不可用或已取消，尝试 WebUSB...');
         }
     }
-    
-    // Fall back to WebUSB
+
+    // 回退到 WebUSB
     if (hasUSB) {
         try {
             return await WebUSBSerial.requestPort(null, forceNew);
         } catch (err) {
-            throw new Error('Neither Web Serial nor WebUSB available or user cancelled');
+            throw new Error('Web Serial 和 WebUSB 均不可用或用户取消');
         }
     }
-    
-    throw new Error('Neither Web Serial API nor WebUSB is supported in this browser');
+
+    throw new Error('此浏览器不支持 Web Serial API 或 WebUSB');
 }
 
-// Also set on globalThis for non-module usage (e.g., dynamic script loading)
+// 同时设置到 globalThis 以用于非模块化使用（例如动态脚本加载）
 if (typeof globalThis !== 'undefined') {
     globalThis.WebUSBSerial = WebUSBSerial;
     globalThis.requestSerialPort = requestSerialPort;
 }
 
-// Export as ES modules
+// 导出为 ES 模块
 export { WebUSBSerial, requestSerialPort };

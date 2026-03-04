@@ -21,7 +21,7 @@ export {
   CHIP_FAMILY_ESP32H21,
   CHIP_FAMILY_ESP32P4,
   CHIP_FAMILY_ESP32S31,
-  // Command constants
+  // 命令常量
   ESP_FLASH_BEGIN,
   ESP_FLASH_DATA,
   ESP_FLASH_END,
@@ -44,10 +44,10 @@ export {
   ESP_FLASH_DEFL_DATA,
   ESP_FLASH_DEFL_END,
   ROM_INVALID_RECV_MSG,
-  // Block size constants
+  // 块大小常量
   USB_RAM_BLOCK,
   ESP_RAM_BLOCK,
-  // Timeout constants
+  // 超时常量
   DEFAULT_TIMEOUT,
   CHIP_ERASE_TIMEOUT,
   MAX_TIMEOUT,
@@ -58,8 +58,8 @@ export {
 } from "./const";
 
 export const connect = async (logger: Logger) => {
-  // - Request a port and open a connection.
-  // Try to use requestSerialPort if available (supports WebUSB for Android)
+  // - 请求一个端口并打开连接。
+  // 尝试使用 requestSerialPort（如果可用，支持 Android 上的 WebUSB）
   let port: SerialPort;
   const customRequestPort = (
     globalThis as { requestSerialPort?: () => Promise<SerialPort> }
@@ -67,18 +67,16 @@ export const connect = async (logger: Logger) => {
   if (typeof customRequestPort === "function") {
     port = await customRequestPort();
   } else {
-    // Check if Web Serial API is available
+    // 检查 Web Serial API 是否可用
     if (!navigator.serial) {
       throw new Error(
-        "Web Serial API is not supported in this browser. " +
-          "Please use Chrome, Edge, or Opera on desktop, or Chrome on Android. " +
-          "Note: The page must be served over HTTPS or localhost.",
+        "当前浏览器不支持 Web Serial API。请使用桌面版的 Chrome、Edge 或 Opera，或 Android 上的 Chrome。注意：页面必须通过 HTTPS 或 localhost 提供服务。",
       );
     }
     port = await navigator.serial.requestPort();
   }
 
-  // Only open if not already open (requestSerialPort may return an opened port)
+  // 仅在端口未打开时才打开（requestSerialPort 可能返回已打开的端口）
   if (!port.readable || !port.writable) {
     await port.open({ baudRate: ESP_ROM_BAUD });
   }
@@ -87,12 +85,12 @@ export const connect = async (logger: Logger) => {
 };
 
 export const connectWithPort = async (port: SerialPort, logger: Logger) => {
-  // Connect using an already opened port (useful for WebUSB wrapper)
+  // 使用已打开的端口连接（适用于 WebUSB 包装器）
   if (!port) {
-    throw new Error("Port is required");
+    throw new Error("需要提供端口");
   }
 
-  // Check if port is already open, if not open it
+  // 检查端口是否已打开，若未打开则打开
   if (!port.readable || !port.writable) {
     await port.open({ baudRate: ESP_ROM_BAUD });
   }
@@ -100,5 +98,5 @@ export const connectWithPort = async (port: SerialPort, logger: Logger) => {
   return new ESPLoader(port, logger);
 };
 
-// Export utility functions for use in UI code
+// 导出供 UI 代码使用的实用函数
 export { toHex, sleep, hexFormatter, formatMacAddr } from "./util";
