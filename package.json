@@ -3,7 +3,6 @@
   "version": "9.2.20",
   "description": "全球首个使用 WebUSB 在 Android 移动设备上烧录和读取 ESP 设备的工具。通过 WebSerial/WebUSB 烧录和读取 ESP 设备——烧录读取速度比 esptool.py 快 10 倍。",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git://github.com/sddtly/WebSerial_ESPTool.git"
