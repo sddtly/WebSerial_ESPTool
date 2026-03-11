@@ -334,12 +334,12 @@ class WebUSBSerial {
         // FTDI 特定的初始化序列
         else if (this.device.vendorId === 0x0403) {
             try {
-                // 步骤 1：重置设备
+                // 步骤 1：重启设备
                 await this.device.controlTransferOut({
                     requestType: 'vendor',
                     recipient: 'device',
                     request: 0x00, // SIO_RESET
-                    value: 0x00,   // 重置
+                    value: 0x00,   // 重启
                     index: 0x00
                 });
 

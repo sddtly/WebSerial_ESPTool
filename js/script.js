@@ -680,7 +680,7 @@ async function clickProgram() {
   butErase.disabled = false;
   baudRateSelect.disabled = false;
   butProgram.disabled = getValidFiles().length == 0;
-  logMsg("要运行新固件，请重置您的设备。");
+  logMsg("要运行新固件，请重启您的设备。");
 }
 
 function getValidFiles() {
